@@ -9,5 +9,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "openai",
     "pocketflow>=0.0.2",
+    "pytest>=8.4.0",
+    "pytest-watch>=4.2.0",
     "requests",
 ]
