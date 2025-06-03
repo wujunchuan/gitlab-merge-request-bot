@@ -1,6 +1,8 @@
-from dotenv import load_dotenv
 import os
+
 import requests
+from dotenv import load_dotenv
+from util import filter_files_from_diff
 
 load_dotenv()
 
@@ -45,20 +47,37 @@ def get_merge_request_detail(project_id: str, mr_number: str):
     return response.json()
 
 
-def get_merge_request_diff(project_id: str, mr_number: str, with_stats=True):
-    """获取 MR 差异"""
+def get_merge_request_raw_diff(
+    project_id: str, mr_number: str, files_to_filter: list[str] = ["pnpm-lock.yaml"]
+):
+    """获取 MR 原始差异"""
     url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/raw_diffs"
+    response = requests.get(url, headers=headers)
+    original_raw_content = response.content.decode("utf-8")
+
+    # 过滤掉 pnpm-lock.yaml 文件
+    raw_content = filter_files_from_diff(original_raw_content, files_to_filter)
+
+    return raw_content
+
+
+def get_merge_request_diff(project_id: str, mr_number: str):
+    """
+    获取 MR 差异
+    @link https://docs.gitlab.com/api/merge_requests/#list-merge-request-diffs
+    """
+    url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/diffs"
     params = {
-        "with_stats": with_stats,  # 包含统计信息
-        "per_page": 100,  # 每页显示的数量
+        # "per_page": 999,  # 每页显示的数量
     }
     response = requests.get(url, headers=headers, params=params)
-    raw_content = response.content.decode("utf-8")
-    return raw_content
+
+    return response.json()
 
 
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
         "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
     )
-    print(get_merge_request_diff(project_id, mr_number))
+    # print(get_merge_request_diff(project_id, mr_number))
+    print(get_merge_request_raw_diff(project_id, mr_number))
