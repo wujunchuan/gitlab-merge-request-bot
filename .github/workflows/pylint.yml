@@ -14,22 +14,19 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    # - name: Create virtual environment
-    #   run: |
-    #     python -m venv .venv
-    #     source .venv/bin/activate
-    # - name: Set up uv
-    #   uses: astral-sh/setup-uv@v1
 
     - name: Install the latest version of uv and activate the environment
       uses: astral-sh/setup-uv@v6
       with:
         activate-environment: true
+
     - name: Install dependencies
       run: |
+        uv sync
         uv pip install --system --upgrade pip
         uv pip install pip
         uv pip install pylint
+        uv install
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
