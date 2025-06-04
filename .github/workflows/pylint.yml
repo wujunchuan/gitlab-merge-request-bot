@@ -26,7 +26,6 @@ jobs:
         uv pip install --system --upgrade pip
         uv pip install pip
         uv pip install pylint
-        uv install
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
