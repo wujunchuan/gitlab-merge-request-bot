@@ -1,8 +1,29 @@
 import os
+from dataclasses import dataclass
 
 import requests
 from dotenv import load_dotenv
 from util import filter_files_from_diff
+
+
+@dataclass
+class Commit:
+    id: str
+    short_id: str
+    created_at: str
+    parent_ids: list[str]
+    title: str
+    message: str
+    author_name: str
+    author_email: str
+    authored_date: str
+    committer_name: str
+    committer_email: str
+    committed_date: str
+    trailers: dict
+    extended_trailers: dict
+    web_url: str
+
 
 load_dotenv()
 
@@ -48,7 +69,9 @@ def get_merge_request_detail(project_id: str, mr_number: str):
 
 
 def get_merge_request_raw_diff(
-    project_id: str, mr_number: str, files_to_filter: list[str] = ["pnpm-lock.yaml"]
+    project_id: str,
+    mr_number: str,
+    files_to_filter: list[str] = ["pnpm-lock.yaml", "package-lock.json"],
 ):
     """获取 MR 原始差异"""
     url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/raw_diffs"
@@ -75,9 +98,22 @@ def get_merge_request_diff(project_id: str, mr_number: str):
     return response.json()
 
 
+def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
+    """
+    获取 MR 提交记录
+
+    https://docs.gitlab.com/api/merge_requests/#get-single-merge-request-commits
+    """
+    url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/commits"
+    response = requests.get(url, headers=headers)
+    return response.json()
+
+
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
-        "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
+        # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
+        "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
     )
     # print(get_merge_request_diff(project_id, mr_number))
     print(get_merge_request_raw_diff(project_id, mr_number))
+    # print(get_merge_request_commits(project_id, mr_number))

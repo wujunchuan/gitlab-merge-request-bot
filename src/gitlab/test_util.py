@@ -333,3 +333,46 @@ diff --git a/empty2.py b/empty2.py
         assert "empty1.py" not in result
         assert "file.py" in result
         assert "empty2.py" in result
+
+    def test_filter_folder(self):
+        """测试路径匹配"""
+        content = """diff --git a/icon/gd.vue b/icon/gd.vue
+index 1234567890abcdef1234567890abcdef12345678..1234567890abcdef1234567890abcdef12345678 100644
+--- a/icon/gd.vue
+<insert> b/icon/gd.vue
+diff --git a/icon/button.vue b/icon/button.vue
+--- a/icon/button.vue
+<insert> b/icon/gd.vue
+        """
+        result = filter_files_from_diff(content, ["icon/"])
+        assert "gd.vue" not in result
+        assert "button.vue" not in result
+
+    def test_filter_folder_with_file(self):
+        """测试路径匹配"""
+        content = """diff --git a/icon/gd.vue b/icon/gd.vue
+index 1234567890abcdef1234567890abcdef12345678..1234567890abcdef1234567890abcdef12345678 100644
+--- a/icon/gd.vue
+<insert> b/icon/gd.vue
+diff --git a/icon/button.vue b/icon/button.vue
+--- a/icon/button.vue
+<insert> b/icon/gd.vue
+        """
+        result = filter_files_from_diff(content, ["icon/button.vue"])
+        assert "gd.vue" in result
+        assert "button.vue" not in result
+
+    def test_filter_when_file_in_diff_body(self):
+        """当 diff 内容中包含匹配的结果时"""
+        content = """diff --git a/icon/gd.vue b/icon/gd.vue
+index 1234567890abcdef1234567890abcdef12345678..1234567890abcdef1234567890abcdef12345678 100644
+package-lock.json asdasdas
+--- a/icon/gd.vue
+<insert> b/icon/gd.vue
+diff --git a/icon/button.vue b/icon/button.vue
+--- a/icon/button.vue
+<insert> b/icon/gd.vue
+        """
+        result = filter_files_from_diff(content, ["package-lock.json"])
+        assert "package-lock.json" in result
+        assert "diff --git a/icon/gd.vue b/icon/gd.vue" not in result
