@@ -13,3 +13,8 @@ dependencies = [
     "pytest-watch>=4.2.0",
     "requests",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.12",
+]
