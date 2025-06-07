@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 
 import requests
@@ -33,10 +34,10 @@ def parse_merge_request_url(url: str):
     if len(parts) != 2 or not parts[1].startswith("merge_requests/"):
         raise ValueError("Invalid merge request URL format")
 
+    origin_url = os.getenv("GITLAB_BASE_URL")
+
     # Get project path (remove base URL)
-    project_id = (
-        parts[0].replace("https://git.intra.gaoding.com/", "").replace("/", "%2F")
-    )
+    project_id = parts[0].replace(f"{origin_url}/", "").replace("/", "%2F")
 
     # Get MR number
     mr_number = parts[1].replace("merge_requests/", "")
@@ -98,5 +99,5 @@ if __name__ == "__main__":
         "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
     )
     # print(get_merge_request_diff(project_id, mr_number))
-    print(get_merge_request_raw_diff(project_id, mr_number))
-    # print(get_merge_request_commits(project_id, mr_number))
+    # print(get_merge_request_raw_diff(project_id, mr_number))
+    print(get_merge_request_commits(project_id, mr_number))

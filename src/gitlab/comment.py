@@ -1,7 +1,13 @@
-# todo
-def create_comment(project_id: str, mr_number: str, content: str):
+import requests
+from auth import base_url, headers
+from merge_request import parse_merge_request_url
+
+
+# todo 创建评论
+def create_comment(url: str, content: str):
+    project_id, mr_number = parse_merge_request_url(url)
     """
-    ref: https://docs.gitlab.com/ee/api/merge_requests.html#create-a-new-merge-request-note
+    ref: https://docs.gitlab.com/api/notes/#create-new-merge-request-note
 
     Create new merge request note
 
@@ -10,4 +16,26 @@ def create_comment(project_id: str, mr_number: str, content: str):
         project_id: The ID of the project
         mr_number: The number of the merge request
     """
+    # POST /projects/:id/merge_requests/:merge_request_iid/notes
+    url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/notes"
+    response = requests.post(url, headers=headers, json={"body": content})
+    response.raise_for_status()
+    return response.json()
+
+
+# todo 为 Merge Request 创建 Thread 讨论
+def create_thread(project_id: str, mr_number: str, content: str):
+    """
+    ref: https://docs.gitlab.com/api/discussions/#create-a-new-thread-in-the-merge-request-diff
+
+    Create new merge request note
+    """
     pass
+
+
+if __name__ == "__main__":
+    create_comment(
+        project_id="123",
+        mr_number="123",
+        content="test",
+    )
