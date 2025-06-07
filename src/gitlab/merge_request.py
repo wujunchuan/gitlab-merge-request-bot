@@ -1,8 +1,7 @@
-import os
 from dataclasses import dataclass
 
 import requests
-from dotenv import load_dotenv
+from auth import base_url, headers
 from util import filter_files_from_diff
 
 
@@ -23,18 +22,6 @@ class Commit:
     trailers: dict
     extended_trailers: dict
     web_url: str
-
-
-load_dotenv()
-
-base_url = os.getenv("GITLAB_BASE_URL") or "https://git.intra.gaoding.com/api/v4"
-
-token = os.getenv("GITLAB_PRIVATE_TOKEN")
-if not token:
-    raise RuntimeError(
-        "GitLab PRIVATE-TOKEN 未设置，请配置 GITLAB_PRIVATE_TOKEN 环境变量"
-    )
-headers = {"PRIVATE-TOKEN": token}
 
 
 def parse_merge_request_url(url: str):
