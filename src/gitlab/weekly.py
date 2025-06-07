@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import requests
-from auth import base_url, headers
-from merge_request import get_merge_request_commits
+
+from gitlab.auth import base_url, headers
+from gitlab.merge_request import get_merge_request_commits
 
 
 def get_current_user_info() -> Dict[str, Any]:

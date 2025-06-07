@@ -1,9 +1,9 @@
-import os
 from dataclasses import dataclass
 
 import requests
-from auth import base_url, headers
-from util import filter_files_from_diff
+
+from gitlab.auth import base_url, headers
+from gitlab.util import filter_files_from_diff, parse_merge_request_url
 
 
 @dataclass
@@ -23,26 +23,6 @@ class Commit:
     trailers: dict
     extended_trailers: dict
     web_url: str
-
-
-def parse_merge_request_url(url: str):
-    """
-    输入 MR 地址，提取 project_id 与 mr_number
-    """
-    # Split URL by '/-/' to get the project path and MR number
-    parts = url.split("/-/")
-    if len(parts) != 2 or not parts[1].startswith("merge_requests/"):
-        raise ValueError("Invalid merge request URL format")
-
-    origin_url = os.getenv("GITLAB_BASE_URL")
-
-    # Get project path (remove base URL)
-    project_id = parts[0].replace(f"{origin_url}/", "").replace("/", "%2F")
-
-    # Get MR number
-    mr_number = parts[1].replace("merge_requests/", "")
-
-    return project_id, mr_number
 
 
 def get_merge_request_detail(project_id: str, mr_number: str):
@@ -94,10 +74,16 @@ def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
 
 
 if __name__ == "__main__":
+    import sys
+
+    print("Python paths:")
+    for p in sys.path:
+        print(p)
+
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
         "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
     )
-    # print(get_merge_request_diff(project_id, mr_number))
+    print(get_merge_request_diff(project_id, mr_number))
     # print(get_merge_request_raw_diff(project_id, mr_number))
-    print(get_merge_request_commits(project_id, mr_number))
+    # print(get_merge_request_commits(project_id, mr_number))

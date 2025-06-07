@@ -1,15 +1,14 @@
 import requests
-from auth import base_url, headers
-from merge_request import parse_merge_request_url
+
+from gitlab.auth import base_url, headers
+from gitlab.merge_request import parse_merge_request_url
 
 
-# todo 创建评论
-def create_comment(url: str, content: str):
-    project_id, mr_number = parse_merge_request_url(url)
+def create_comment(project_id: str, mr_number: str, content: str):
     """
     ref: https://docs.gitlab.com/api/notes/#create-new-merge-request-note
 
-    Create new merge request note
+    创建评论，在 Merge Request 中添加评论
 
     Args:
         content: The content of the comment
@@ -34,8 +33,11 @@ def create_thread(project_id: str, mr_number: str, content: str):
 
 
 if __name__ == "__main__":
+    project_id, mr_number = parse_merge_request_url(
+        "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
+    )
     create_comment(
-        project_id="123",
-        mr_number="123",
+        project_id,
+        mr_number,
         content="test",
     )

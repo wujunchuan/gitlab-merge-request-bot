@@ -1,5 +1,27 @@
+import os
 import re
 from typing import List
+
+
+def parse_merge_request_url(url: str, origin_url: str | None = None):
+    """
+    输入 MR 地址，提取 project_id 与 mr_number
+    """
+    # Split URL by '/-/' to get the project path and MR number
+    parts = url.split("/-/")
+    if len(parts) != 2 or not parts[1].startswith("merge_requests/"):
+        raise ValueError("Invalid merge request URL format")
+
+    if origin_url is None:
+        origin_url = os.getenv("GITLAB_BASE_URL")
+
+    # Get project path (remove base URL)
+    project_id = parts[0].replace(f"{origin_url}/", "").replace("/", "%2F")
+
+    # Get MR number
+    mr_number = parts[1].replace("merge_requests/", "")
+
+    return project_id, mr_number
 
 
 def filter_files_from_diff(
