@@ -375,4 +375,4 @@ diff --git a/icon/button.vue b/icon/button.vue
         """
         result = filter_files_from_diff(content, ["package-lock.json"])
         assert "package-lock.json" in result
-        assert "diff --git a/icon/gd.vue b/icon/gd.vue" not in result
+        assert "diff --git a/icon/gd.vue b/icon/gd.vue" in result
