@@ -6,6 +6,8 @@ from openai import OpenAI
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
+openai_model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+
 if not api_key:
     raise RuntimeError("OPENAI_API_KEY 未设置，请配置 OPENAI_API_KEY 环境变量")
 
