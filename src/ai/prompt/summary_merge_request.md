@@ -4,13 +4,18 @@
 
 使用中文进行描述，考虑可读性内容精简，突出重点，让代码审查更加高效。
 
-当遇到形如 #GJY-19661 的 Commit Message 时，考虑在描述中生成对应的工单链接。例如
-
-# GJY-19661 对应的工单链接是 [#GJY-19661](https://pingcode.intra.gaoding.com/pjm/workitems/GJY-19661)
+当遇到形如 #GJY-19661 的 Commit Message 时，考虑在描述中生成对应的工单链接。例如 #GJY-19661 对应的工单链接是 [#GJY-19661](https://pingcode.intra.gaoding.com/pjm/workitems/GJY-19661)
 
 ## 内容要求
 
 - 主要变更概述
+  按照以下章节描述主要变更
+  - New Features
+  - Documentation
+  - Bug Fixes
+  - Refactor
+  - Tests
+  - Chores
 - 详细变更说明
 - 提交历史总结
   - 需要明确具体的 Commit Hash

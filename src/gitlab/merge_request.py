@@ -74,12 +74,6 @@ def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
 
 
 if __name__ == "__main__":
-    import sys
-
-    print("Python paths:")
-    for p in sys.path:
-        print(p)
-
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
         "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"

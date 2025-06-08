@@ -2,7 +2,7 @@ import asyncio
 
 from pocketflow import AsyncFlow, AsyncNode
 
-from ai.auth import client, openai_model
+from ai.auth import client, get_openai_model
 from ai.get_prompt import prompt_manager
 from gitlab.comment import create_comment
 from gitlab.merge_request import get_merge_request_commits, get_merge_request_raw_diff
@@ -23,7 +23,7 @@ def call_llm(content: str):
     logger.info(f"User content: {content}")
 
     chat_completion = client.chat.completions.create(
-        model=openai_model,
+        model=get_openai_model(),
         temperature=1.0,
         messages=[
             {"role": "system", "content": summary_merge_request_prompt},
