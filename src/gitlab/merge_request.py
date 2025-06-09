@@ -73,6 +73,30 @@ def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
     return response.json()
 
 
+# todo: GET /projects/:id/repository/compare
+def get_compare_diff_from_commits(
+    project_id: str, from_commit: str, to_commit: str
+) -> str:
+    """
+    获取两个 commit 之间的差异
+
+    Args:
+        project_id (str): 项目 ID
+        from_commit (str): 起始 commit
+        to_commit (str): 结束 commit
+
+    Returns:
+        str: 差异内容
+    """
+    url = f"{base_url}/projects/{project_id}/repository/compare"
+    params = {
+        "from": from_commit,
+        "to": to_commit,
+    }
+    response = requests.get(url, headers=headers, params=params)
+    return response.json()
+
+
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
