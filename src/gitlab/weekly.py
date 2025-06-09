@@ -1,22 +1,10 @@
-import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import requests
-from dotenv import load_dotenv
-from merge_request import get_merge_request_commits
 
-load_dotenv()
-
-# 复用已有的配置
-base_url = os.getenv("GITLAB_BASE_URL") or "https://git.intra.gaoding.com/api/v4"
-
-token = os.getenv("GITLAB_PRIVATE_TOKEN")
-if not token:
-    raise RuntimeError(
-        "GitLab PRIVATE-TOKEN 未设置，请配置 GITLAB_PRIVATE_TOKEN 环境变量"
-    )
-headers = {"PRIVATE-TOKEN": token}
+from gitlab.auth import base_url, headers
+from gitlab.merge_request import get_merge_request_commits
 
 
 def get_current_user_info() -> Dict[str, Any]:

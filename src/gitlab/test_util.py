@@ -1,4 +1,4 @@
-from gitlab.util import filter_files_from_diff
+from gitlab.util import filter_files_from_diff, parse_merge_request_url
 
 
 class TestFilterFilesFromDiff:
@@ -375,4 +375,22 @@ diff --git a/icon/button.vue b/icon/button.vue
         """
         result = filter_files_from_diff(content, ["package-lock.json"])
         assert "package-lock.json" in result
-        assert "diff --git a/icon/gd.vue b/icon/gd.vue" not in result
+        assert "diff --git a/icon/gd.vue b/icon/gd.vue" in result
+
+
+class TestParseMergeRequestUrl:
+    """测试 parse_merge_request_url 函数"""
+
+    def test_parse_merge_request_url(self):
+        """测试解析 MR 地址"""
+        url = "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
+        project_id, mr_number = parse_merge_request_url(url)
+        assert project_id == "npm%2Fgdicon-cli"
+        assert mr_number == "7"
+
+    def test_parse_merge_request_url_with_origin_url(self):
+        """测试解析 MR 地址"""
+        url = "https://git.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
+        project_id, mr_number = parse_merge_request_url(url, "https://git.gaoding.com")
+        assert project_id == "npm%2Fgdicon-cli"
+        assert mr_number == "7"

@@ -1,9 +1,9 @@
-import os
 from dataclasses import dataclass
 
 import requests
-from dotenv import load_dotenv
-from util import filter_files_from_diff
+
+from gitlab.auth import base_url, headers
+from gitlab.util import filter_files_from_diff, parse_merge_request_url
 
 
 @dataclass
@@ -23,38 +23,6 @@ class Commit:
     trailers: dict
     extended_trailers: dict
     web_url: str
-
-
-load_dotenv()
-
-base_url = os.getenv("GITLAB_BASE_URL") or "https://git.intra.gaoding.com/api/v4"
-
-token = os.getenv("GITLAB_PRIVATE_TOKEN")
-if not token:
-    raise RuntimeError(
-        "GitLab PRIVATE-TOKEN 未设置，请配置 GITLAB_PRIVATE_TOKEN 环境变量"
-    )
-headers = {"PRIVATE-TOKEN": token}
-
-
-def parse_merge_request_url(url: str):
-    """
-    输入 MR 地址，提取 project_id 与 mr_number
-    """
-    # Split URL by '/-/' to get the project path and MR number
-    parts = url.split("/-/")
-    if len(parts) != 2 or not parts[1].startswith("merge_requests/"):
-        raise ValueError("Invalid merge request URL format")
-
-    # Get project path (remove base URL)
-    project_id = (
-        parts[0].replace("https://git.intra.gaoding.com/", "").replace("/", "%2F")
-    )
-
-    # Get MR number
-    mr_number = parts[1].replace("merge_requests/", "")
-
-    return project_id, mr_number
 
 
 def get_merge_request_detail(project_id: str, mr_number: str):
@@ -110,6 +78,6 @@ if __name__ == "__main__":
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
         "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
     )
-    # print(get_merge_request_diff(project_id, mr_number))
-    print(get_merge_request_raw_diff(project_id, mr_number))
+    print(get_merge_request_diff(project_id, mr_number))
+    # print(get_merge_request_raw_diff(project_id, mr_number))
     # print(get_merge_request_commits(project_id, mr_number))

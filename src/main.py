@@ -1,18 +1,4 @@
-from openai import OpenAI
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise RuntimeError("OPENAI_API_KEY 未设置，请配置 OPENAI_API_KEY 环境变量")
-
-client = OpenAI(
-    api_key=api_key,
-    base_url=os.getenv("OPENAI_BASE_URL"),
-)
+from ai.auth import client
 
 
 def main():
@@ -20,10 +6,10 @@ def main():
         messages=[
             {
                 "role": "user",
-                "content": "Say this is a test",
+                "content": "Who you are? Please introduce yourself in 100 words.",
             }
         ],
-        model="gpt-4o-mini",
+        model="gemini-2.0-flash",
     )
     print(chat_completion.choices[0].message.content)
 
