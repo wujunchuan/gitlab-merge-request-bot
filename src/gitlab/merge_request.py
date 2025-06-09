@@ -1,9 +1,15 @@
+import json
+import os
 from dataclasses import dataclass
 
 import requests
 
 from gitlab.auth import base_url, headers
-from gitlab.util import filter_files_from_diff, parse_merge_request_url
+from gitlab.util import (
+    filter_files_from_diff,
+    parse_merge_request_url,
+    parse_project_name,
+)
 
 
 @dataclass
@@ -73,12 +79,13 @@ def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
     return response.json()
 
 
-# todo: GET /projects/:id/repository/compare
 def get_compare_diff_from_commits(
     project_id: str, from_commit: str, to_commit: str
 ) -> str:
     """
     获取两个 commit 之间的差异
+
+    docs: https://docs.gitlab.com/api/repositories/#compare-branches-tags-or-commits
 
     Args:
         project_id (str): 项目 ID
@@ -100,8 +107,22 @@ def get_compare_diff_from_commits(
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
-        "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
+        "https://gitlab.com/wujunchuan/gitlab-merge-request-bot/-/merge_requests/2"
     )
-    print(get_merge_request_diff(project_id, mr_number))
+
+    # print(get_merge_request_diff(project_id, mr_number))
     # print(get_merge_request_raw_diff(project_id, mr_number))
     # print(get_merge_request_commits(project_id, mr_number))
+
+    json_res = get_compare_diff_from_commits(
+        parse_project_name("wujunchuan/gitlab-merge-request-bot"), "6f11909", "ddcaeb5"
+    )
+
+    # print(json_res)
+
+    skip_files = os.getenv("SKIP_FILES")
+    if skip_files:
+        skip_files = json.loads(skip_files)
+
+    print('os.getenv("GITLAB_BASE_URL")', skip_files)
+    print(len(skip_files))

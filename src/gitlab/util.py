@@ -1,6 +1,21 @@
+import json
 import os
 import re
 from typing import List
+from urllib.parse import quote
+
+
+def get_skip_files():
+    """获取跳过的文件列表"""
+    skip_files = os.getenv("SKIP_FILES")
+    if skip_files:
+        return json.loads(skip_files)
+    return ["pnpm-lock.yaml"]
+
+
+def parse_project_name(project_name: str):
+    """将项目名转义为 URL 编码"""
+    return quote(project_name, safe="")
 
 
 def parse_merge_request_url(url: str, origin_url: str | None = None):
@@ -16,7 +31,7 @@ def parse_merge_request_url(url: str, origin_url: str | None = None):
         origin_url = os.getenv("GITLAB_BASE_URL")
 
     # Get project path (remove base URL)
-    project_id = parts[0].replace(f"{origin_url}/", "").replace("/", "%2F")
+    project_id = parse_project_name(parts[0].replace(f"{origin_url}/", ""))
 
     # Get MR number
     mr_number = parts[1].replace("merge_requests/", "")
@@ -33,7 +48,7 @@ def filter_files_from_diff(
 
     # 如果没有需要过滤的文件，直接返回原内容
     if not files_to_filter:
-        return content
+        files_to_filter = get_skip_files()
 
     if "diff --git" not in content:
         return content
