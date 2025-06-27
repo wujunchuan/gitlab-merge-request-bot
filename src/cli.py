@@ -10,7 +10,11 @@ from workflow.summary_merge_request import SummaryMergeRequest
 
 
 def cmd_weekly():
-    """执行 weekly 命令逻辑"""
+    """
+    Fetch and display a summary of GitLab merge requests from the past week.
+    
+    Retrieves merge requests created within the last 7 days and prints a summary to standard output. Exits with an error message if the operation fails.
+    """
     try:
         # 获取最近7天的MR
         recent_mrs = fetch_recent_merge_requests()
@@ -24,7 +28,12 @@ def cmd_weekly():
 
 
 async def cmd_merge(url: str):
-    """执行 merge 命令逻辑"""
+    """
+    Executes the asynchronous workflow for processing a GitLab merge request by URL.
+    
+    Parameters:
+        url (str): The URL of the GitLab merge request to process.
+    """
     try:
         flow = AsyncFlow(start=SummaryMergeRequest())
 
@@ -37,7 +46,11 @@ async def cmd_merge(url: str):
 
 
 def main():
-    """主入口函数"""
+    """
+    Entry point for the GitLab Merge Request CLI tool.
+    
+    Parses command-line arguments, dispatches to the appropriate subcommand handler, and manages program exit behavior. Supports the `weekly` and `merge` subcommands for summarizing recent merge requests and generating summaries for a specific merge request, respectively.
+    """
     parser = argparse.ArgumentParser(
         prog="gitlab-merge-request-bot", description="GitLab Merge Request 工具集"
     )

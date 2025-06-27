@@ -91,6 +91,11 @@ if __name__ == "__main__":
     flow = AsyncFlow(start=SummaryMergeRequest())
 
     async def main():
+        """
+        Runs the asynchronous workflow to summarize and comment on a specific GitLab Merge Request.
+        
+        Initializes the shared context with the target MR URL and executes the flow to process, summarize, and post the summary as a comment.
+        """
         shared = {
             "url": "https://git.intra.gaoding.com/hex/hex-editor/-/merge_requests/8191"
         }

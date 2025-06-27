@@ -6,7 +6,12 @@ from urllib.parse import quote
 
 
 def get_skip_files():
-    """获取跳过的文件列表"""
+    """
+    Retrieve the list of filenames to skip from the SKIP_FILES environment variable.
+    
+    Returns:
+        List of filenames to be skipped. If SKIP_FILES is not set, returns ["pnpm-lock.yaml"] by default.
+    """
     skip_files = os.getenv("SKIP_FILES")
     if skip_files:
         return json.loads(skip_files)
@@ -14,13 +19,31 @@ def get_skip_files():
 
 
 def parse_project_name(project_name: str):
-    """将项目名转义为 URL 编码"""
+    """
+    URL-encode the given project name, escaping all special characters.
+    
+    Parameters:
+        project_name (str): The project name to encode.
+    
+    Returns:
+        str: The URL-encoded project name.
+    """
     return quote(project_name, safe="")
 
 
 def parse_merge_request_url(url: str, origin_url: str | None = None):
     """
-    输入 MR 地址，提取 project_id 与 mr_number
+    Extracts the project ID and merge request number from a GitLab merge request URL.
+    
+    Parameters:
+        url (str): The full GitLab merge request URL.
+        origin_url (str, optional): The base URL of the GitLab instance. If not provided, uses the GITLAB_BASE_URL environment variable.
+    
+    Returns:
+        tuple: A tuple containing the URL-encoded project ID and the merge request number as strings.
+    
+    Raises:
+        ValueError: If the URL does not match the expected GitLab merge request format.
     """
     # Split URL by '/-/' to get the project path and MR number
     parts = url.split("/-/")
@@ -42,7 +65,16 @@ def parse_merge_request_url(url: str, origin_url: str | None = None):
 def filter_files_from_diff(
     content: str, files_to_filter: List[str] = ["pnpm-lock.yaml"]
 ) -> str:
-    """过滤掉指定文件的 diff 内容"""
+    """
+    Remove diff sections for specified files from a unified diff string.
+    
+    Parameters:
+        content (str): The unified diff content to filter.
+        files_to_filter (List[str], optional): List of filenames to exclude from the diff. If empty, uses the default skip list from the environment.
+    
+    Returns:
+        str: The filtered diff content with sections for specified files removed. Returns an empty string if all sections are filtered out or the original content if no filtering is applied.
+    """
     if not content.strip():
         return content
 
