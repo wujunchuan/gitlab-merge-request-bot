@@ -48,32 +48,34 @@ def fetch_recent_merge_requests(
         "author_id": user_id,  # 只获取当前用户创建的MR
         "updated_before": end_date.isoformat(),  # 更新时间在指定日期之前
         "updated_after": start_date.isoformat(),  # 更新时间在指定日期之后
-        "state": "all",  # 获取所有状态的MR（opened, closed, merged）
         "order_by": "created_at",  # 按创建时间排序
         "sort": "desc",  # 降序排列（最新的在前）
         "per_page": 100,  # 每页100条记录
     }
 
     all_merge_requests = []
-    page = 1
+    states = ["opened", "merged"]  # 定义要获取的状态列表
 
-    while True:
-        params["page"] = page
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
+    for state in states:
+        page = 1
+        while True:
+            params["state"] = state  # 设置当前要获取的状态
+            params["page"] = page
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
 
-        merge_requests = response.json()
+            merge_requests = response.json()
 
-        if not merge_requests:
-            break
+            if not merge_requests:
+                break
 
-        all_merge_requests.extend(merge_requests)
+            all_merge_requests.extend(merge_requests)
 
-        # 检查是否还有更多页面
-        if len(merge_requests) < params["per_page"]:
-            break
+            # 检查是否还有更多页面
+            if len(merge_requests) < params["per_page"]:
+                break
 
-        page += 1
+            page += 1
 
     # 为每个MR获取提交记录
     enriched_merge_requests = []

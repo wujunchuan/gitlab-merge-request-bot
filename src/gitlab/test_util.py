@@ -384,7 +384,9 @@ class TestParseMergeRequestUrl:
     def test_parse_merge_request_url(self):
         """测试解析 MR 地址"""
         url = "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
-        project_id, mr_number = parse_merge_request_url(url)
+        project_id, mr_number = parse_merge_request_url(
+            url, "https://git.intra.gaoding.com"
+        )
         assert project_id == "npm%2Fgdicon-cli"
         assert mr_number == "7"
 

@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     async def main():
         shared = {
-            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/1"
+            "url": "https://git.intra.gaoding.com/hex/hex-editor/-/merge_requests/8191"
         }
         await flow.run_async(shared)
 

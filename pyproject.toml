@@ -14,7 +14,18 @@ dependencies = [
     "requests",
 ]
 
+[project.scripts]
+gitlab-merge-request-bot = "cli:main"
+
 [dependency-groups]
 dev = [
     "ruff>=0.11.12",
 ]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*"]
