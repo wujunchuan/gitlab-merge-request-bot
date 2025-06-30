@@ -70,9 +70,14 @@ def get_merge_request_diff(project_id: str, mr_number: str):
 
 def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
     """
-    获取 MR 提交记录
+    Retrieve the list of commits associated with a specific merge request.
 
-    https://docs.gitlab.com/api/merge_requests/#get-single-merge-request-commits
+    Parameters:
+        project_id (str): The unique identifier of the GitLab project.
+        mr_number (str): The merge request number.
+
+    Returns:
+        list: A list of commit data in JSON format for the specified merge request.
     """
     url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/commits"
     response = requests.get(url, headers=headers)
@@ -83,17 +88,15 @@ def get_compare_diff_from_commits(
     project_id: str, from_commit: str, to_commit: str
 ) -> str:
     """
-    获取两个 commit 之间的差异
+    Retrieve the diff between two commits in a GitLab project.
 
-    docs: https://docs.gitlab.com/api/repositories/#compare-branches-tags-or-commits
-
-    Args:
-        project_id (str): 项目 ID
-        from_commit (str): 起始 commit
-        to_commit (str): 结束 commit
+    Parameters:
+        project_id (str): The unique identifier of the GitLab project.
+        from_commit (str): The commit SHA or reference to compare from.
+        to_commit (str): The commit SHA or reference to compare to.
 
     Returns:
-        str: 差异内容
+        str: The JSON response containing the diff information between the specified commits.
     """
     url = f"{base_url}/projects/{project_id}/repository/compare"
     params = {

@@ -19,14 +19,14 @@ def fetch_recent_merge_requests(
     project_id: str = None, days: int = 7
 ) -> List[Dict[str, Any]]:
     """
-    获取最近N天内的 MR，并获取 MR 的提交记录
+    Retrieve merge requests created by the current user within the last specified number of days, including their commit records.
 
-    Args:
-        project_id: 项目ID，如果为None则获取当前用户在所有项目中的MR
-        days: 获取最近多少天的MR，默认7天
+    Parameters:
+        project_id (str, optional): If provided, limits results to the specified project; otherwise, fetches across all projects.
+        days (int, optional): Number of days to look back for merge requests. Defaults to 7.
 
     Returns:
-        List[Dict]: MR列表，每个MR包含基本信息和提交记录
+        List[Dict[str, Any]]: A list of merge requests, each containing basic information and associated commit records where available.
     """
     # 计算日期范围
     end_date = datetime.now()
