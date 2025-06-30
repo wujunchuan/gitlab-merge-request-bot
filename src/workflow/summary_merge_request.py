@@ -93,7 +93,7 @@ if __name__ == "__main__":
     async def main():
         """
         Runs the asynchronous workflow to summarize and comment on a specific GitLab Merge Request.
-        
+
         Initializes the shared context with the target MR URL and executes the flow to process, summarize, and post the summary as a comment.
         """
         shared = {

@@ -20,11 +20,11 @@ def fetch_recent_merge_requests(
 ) -> List[Dict[str, Any]]:
     """
     Retrieve merge requests created by the current user within the last specified number of days, including their commit records.
-    
+
     Parameters:
         project_id (str, optional): If provided, limits results to the specified project; otherwise, fetches across all projects.
         days (int, optional): Number of days to look back for merge requests. Defaults to 7.
-    
+
     Returns:
         List[Dict[str, Any]]: A list of merge requests, each containing basic information and associated commit records where available.
     """

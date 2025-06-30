@@ -71,11 +71,11 @@ def get_merge_request_diff(project_id: str, mr_number: str):
 def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
     """
     Retrieve the list of commits associated with a specific merge request.
-    
+
     Parameters:
         project_id (str): The unique identifier of the GitLab project.
         mr_number (str): The merge request number.
-    
+
     Returns:
         list: A list of commit data in JSON format for the specified merge request.
     """
@@ -89,12 +89,12 @@ def get_compare_diff_from_commits(
 ) -> str:
     """
     Retrieve the diff between two commits in a GitLab project.
-    
+
     Parameters:
         project_id (str): The unique identifier of the GitLab project.
         from_commit (str): The commit SHA or reference to compare from.
         to_commit (str): The commit SHA or reference to compare to.
-    
+
     Returns:
         str: The JSON response containing the diff information between the specified commits.
     """
