@@ -4,8 +4,12 @@ from pocketflow import AsyncFlow, AsyncNode
 
 from ai.auth import client, get_openai_model
 from ai.get_prompt import prompt_manager
-from gitlab.comment import create_comment
-from gitlab.merge_request import get_merge_request_commits, get_merge_request_raw_diff
+from gitlab.comment import create_comment, get_comment
+from gitlab.merge_request import (
+    get_compare_diff_from_commits,
+    get_merge_request_commits,
+    get_merge_request_raw_diff,
+)
 from gitlab.util import parse_merge_request_url
 from utils.logger import get_logger
 
@@ -54,17 +58,54 @@ class SummaryMergeRequest(AsyncNode):
         shared["project_id"] = project_id
         shared["merge_number"] = merge_number
 
-        # 获取 raw diff
-        raw_diff = get_merge_request_raw_diff(project_id, merge_number)
-        shared["raw_diff"] = raw_diff
+        comments = get_comment(project_id, merge_number)
+        # 遍历 comments, 找出 start_commit_hash 与 end_commit_hash
+        start_commit_hash = None
+        end_commit_hash = None
+        for comment in comments:
+            if start_commit_hash and end_commit_hash:
+                break
+            if "<!-- start-commit-hash" in comment["body"]:
+                start_commit_hash = (
+                    comment["body"]
+                    .split("<!-- start-commit-hash: ")[1]
+                    .split(" -->")[0]
+                )
+            if "<!-- end-commit-hash" in comment["body"]:
+                end_commit_hash = (
+                    comment["body"].split("<!-- end-commit-hash: ")[1].split(" -->")[0]
+                )
 
-        # 获取 commits
-        commits = get_merge_request_commits(project_id, merge_number)
-        shared["commits"] = "\n".join(
-            [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
-        )
-
-        return shared
+        # 如果有 start_commit_hash 与 end_commit_hash, 则获取区间 diff 和区间内的 commits
+        if start_commit_hash and end_commit_hash:
+            shared["start_commit_hash"] = start_commit_hash
+            shared["end_commit_hash"] = end_commit_hash
+            diff = get_compare_diff_from_commits(
+                project_id, start_commit_hash, end_commit_hash
+            )
+            shared["raw_diff"] = diff
+            # 获取区间内的 commits
+            commits = get_merge_request_commits(
+                project_id, merge_number, start_commit_hash, end_commit_hash
+            )
+            shared["commits"] = "\n".join(
+                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
+            )
+            return shared
+        else:
+            # 如果没有 start_commit_hash 与 end_commit_hash, 则获取 raw diff 并解析出 start_commit_hash 与 end_commit_hash
+            raw_diff = get_merge_request_raw_diff(project_id, merge_number)
+            shared["raw_diff"] = raw_diff
+            # 获取所有 commits
+            commits = get_merge_request_commits(project_id, merge_number)
+            start_commit_hash = commits[0]["short_id"]
+            end_commit_hash = commits[-1]["short_id"]
+            shared["start_commit_hash"] = start_commit_hash
+            shared["end_commit_hash"] = end_commit_hash
+            shared["commits"] = "\n".join(
+                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
+            )
+            return shared
 
     async def exec_async(self, prep_res):
         content = f"""## 原始 diff\n\n{prep_res.get("raw_diff")}\n\n## 详细 commit 信息\n\n{prep_res.get("commits")}"""
@@ -82,7 +123,20 @@ class SummaryMergeRequest(AsyncNode):
         logger.info(
             f"Creating comment for merge request {shared['merge_number']} in project {shared['project_id']}"
         )
-        create_comment(shared["project_id"], shared["merge_number"], exec_res)
+        create_comment(
+            shared["project_id"],
+            shared["merge_number"],
+            f"""
+<!-- gitlab-merge-request-bot meta info -->
+<!-- Don't Remove This Comment -->
+<!-- start-commit-hash: {shared["start_commit_hash"]} -->
+<!-- end-commit-hash: {shared["end_commit_hash"]} -->
+<!-- gitlab-merge-request-bot meta info -->
+
+{exec_res}
+
+        """,
+        )
         logger.info("Comment created successfully")
         return "Done"
 
@@ -92,7 +146,7 @@ if __name__ == "__main__":
 
     async def main():
         shared = {
-            "url": "https://git.intra.gaoding.com/hex/hex-editor/-/merge_requests/8191"
+            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/2"
         }
         await flow.run_async(shared)
 

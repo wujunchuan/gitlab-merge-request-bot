@@ -26,9 +26,9 @@
   - 如果不适合使用图表，则忽略本章节，不强制使用图表。
   - 如果决定使用图表，选择最合适的Mermaid图表类型，如流程图、序列图、类图、状态图、实体关系图、用户旅程、甘特图、饼图、象限图、需求图、Git图（Gitgraph）、C4图、思维导图、时间线、Zenuml、桑基图、XY图、块图等。
   - 使用Mermaid语法编写图表代码，确保语法正确。将图表代码放在和之间。
-    - 在遵循 Mermaid 语法的基础上，注意用 " 包裹内容，以避免解析失败，以下是范例
-    **BAD CASE:** `F --> G[中文 fetchCategoryList(FilterTree)];`
-    **GOOD CASE:** `F --> G["中文 fetchCategoryList(FilterTree)"];`
+    - 在遵循 Mermaid 语法的基础上，注意用 " 包裹内容，以避免解析失败
+      - **BAD CASE:** `F --> G[中文 fetchCategoryList(FilterTree)];`
+      - **GOOD CASE:** `F --> G["中文 fetchCategoryList(FilterTree)"];`
   - 在图表前后提供文字解释，说明图表的内容和关键点。
   - 如果问题复杂，使用多个图表来解释不同方面。
   - 确保图表清晰简洁，避免过度复杂或信息过载。
