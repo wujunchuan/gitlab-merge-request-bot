@@ -76,43 +76,43 @@ class SummaryMergeRequest(AsyncNode):
                     comment["body"].split("<!-- end-commit-hash: ")[1].split(" -->")[0]
                 )
 
-        # 如果有 start_commit_hash 与 end_commit_hash, 则获取区间 diff 和从 start_commit_hash 开始的 commits
+        # 根据是否有历史 commit hash 决定获取方式
         if start_commit_hash and end_commit_hash:
-            # 获取从 start_commit_hash 后的所有 commits
+            # 获取从 start_commit_hash 后的所有 commits（区间模式）
             commits = get_merge_request_commits(
                 project_id, merge_number, end_commit_hash
             )
-            start_commit_hash = commits[-1]["short_id"]
-            end_commit_hash = commits[0]["short_id"]
-
-            commits = commits[
-                :-1
-            ]  # end_commit_hash 是最后一个 commit，已经进行总结过了所以需要移掉
-            shared["commits"] = "\n".join(
-                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
+            # 移除最后一个 commit（已经总结过了）
+            commits = commits[:-1]
+            # 获取区间 diff
+            actual_start = commits[-1]["short_id"] if commits else start_commit_hash
+            actual_end = commits[0]["short_id"] if commits else end_commit_hash
+            raw_diff = get_compare_diff_from_commits(
+                project_id, actual_start, actual_end
             )
-
-            diff = get_compare_diff_from_commits(
-                project_id, start_commit_hash, end_commit_hash
-            )
-            shared["raw_diff"] = diff
-            shared["start_commit_hash"] = start_commit_hash
-            shared["end_commit_hash"] = end_commit_hash
-            return shared
         else:
-            # 如果没有 start_commit_hash 与 end_commit_hash, 则获取 raw diff 并解析出 start_commit_hash 与 end_commit_hash
-            raw_diff = get_merge_request_raw_diff(project_id, merge_number)
-            shared["raw_diff"] = raw_diff
-            # 获取所有 commits
+            # 获取整个 MR 的所有内容（完整模式）
             commits = get_merge_request_commits(project_id, merge_number)
-            start_commit_hash = commits[-1]["short_id"]
-            end_commit_hash = commits[0]["short_id"]
-            shared["start_commit_hash"] = start_commit_hash
-            shared["end_commit_hash"] = end_commit_hash
-            shared["commits"] = "\n".join(
-                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
-            )
-            return shared
+            raw_diff = get_merge_request_raw_diff(project_id, merge_number)
+            actual_start = commits[-1]["short_id"]
+            actual_end = commits[0]["short_id"]
+
+        # 设置共享数据
+        shared.update(
+            {
+                "raw_diff": raw_diff,
+                "start_commit_hash": actual_start,
+                "end_commit_hash": actual_end,
+                "commits": "\n".join(
+                    [
+                        f"{commit['short_id']}\n{commit['message']}\n"
+                        for commit in commits
+                    ]
+                ),
+            }
+        )
+
+        return shared
 
     async def exec_async(self, prep_res):
         content = f"""## 原始 diff\n\n{prep_res.get("raw_diff")}\n\n## 详细 commit 信息\n\n{prep_res.get("commits")}"""
