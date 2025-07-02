@@ -16,7 +16,15 @@ pip install .
 
 ### 命令
 
-#### 1. 获取周报 (`weekly`)
+#### 1. 查看版本 (`version`)
+
+显示当前版本信息：
+
+```bash
+gitlab-merge-request-bot version
+```
+
+#### 2. 获取周报 (`weekly`)
 
 获取最近7天的 MR 摘要：
 
@@ -24,7 +32,7 @@ pip install .
 gitlab-merge-request-bot weekly
 ```
 
-#### 2. MR 摘要 (`merge`)
+#### 3. MR 摘要 (`merge`)
 
 为指定的 MR 生成 AI 摘要并添加评论：
 
@@ -45,6 +53,7 @@ gitlab-merge-request-bot merge https://git.intra.gaoding.com/hex/hex-editor/-/me
 gitlab-merge-request-bot --help
 
 # 查看特定命令帮助
+gitlab-merge-request-bot version --help
 gitlab-merge-request-bot weekly --help
 gitlab-merge-request-bot merge --help
 ```
