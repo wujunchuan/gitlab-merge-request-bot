@@ -72,7 +72,6 @@ def get_merge_request_commits(
     project_id: str,
     mr_number: str,
     start_commit_hash: str = None,
-    end_commit_hash: str = None,
 ) -> list[Commit]:
     """
     获取 MR 提交记录
@@ -80,12 +79,11 @@ def get_merge_request_commits(
     Args:
         project_id: 项目 ID
         mr_number: MR 编号
-        start_commit_hash: 可选，起始 commit hash (包含)
-        end_commit_hash: 可选，结束 commit hash (包含)
+        start_commit_hash: 可选，起始 commit hash (包含)，返回从该 commit 开始到最新的所有 commits
 
     Returns:
-        list[Commit]: 如果指定了 start_commit_hash 和 end_commit_hash，
-                     则返回这个区间内的 commits（包含起始和结束）
+        list[Commit]: 如果指定了 start_commit_hash，则返回从该 commit 开始到最新的所有 commits；
+                     否则返回所有 commits
 
     https://docs.gitlab.com/api/merge_requests/#get-single-merge-request-commits
     """
@@ -93,13 +91,12 @@ def get_merge_request_commits(
     response = requests.get(url, headers=headers)
     all_commits = response.json()
 
-    # 如果没有指定区间参数，返回所有 commits
-    if not start_commit_hash or not end_commit_hash:
+    # 如果没有指定起始 commit，返回所有 commits
+    if not start_commit_hash:
         return all_commits
 
-    # 查找起始和结束 commit 的索引
+    # 查找起始 commit 的索引
     start_index = None
-    end_index = None
 
     for i, commit in enumerate(all_commits):
         # 匹配 commit hash (支持完整 hash 和 short hash)
@@ -109,25 +106,16 @@ def get_merge_request_commits(
             or commit["id"].startswith(start_commit_hash)
         ):
             start_index = i
-
-        if (
-            commit["id"] == end_commit_hash
-            or commit["short_id"] == end_commit_hash
-            or commit["id"].startswith(end_commit_hash)
-        ):
-            end_index = i
+            break
 
     # 如果找不到指定的 commit，返回所有 commits
-    if start_index is None or end_index is None:
+    if start_index is None:
         return all_commits
 
-    # 确保索引顺序正确（GitLab API 返回的 commits 是倒序的，最新的在前面）
-    # 所以我们需要取 min(start_index, end_index) 到 max(start_index, end_index)
-    min_index = min(start_index, end_index)
-    max_index = max(start_index, end_index)
-
-    # 返回指定区间内的 commits（包含起始和结束）
-    return all_commits[min_index : max_index + 1]
+    # 返回从指定 commit 开始到最新的所有 commits（包含起始 commit）
+    # GitLab API 返回的 commits 是倒序的，最新的在前面
+    # 所以从索引 0 到 start_index（包含）就是从最新到起始 commit
+    return all_commits[0 : start_index + 1]
 
 
 def get_compare_diff_from_commits(

@@ -76,21 +76,28 @@ class SummaryMergeRequest(AsyncNode):
                     comment["body"].split("<!-- end-commit-hash: ")[1].split(" -->")[0]
                 )
 
-        # 如果有 start_commit_hash 与 end_commit_hash, 则获取区间 diff 和区间内的 commits
+        # 如果有 start_commit_hash 与 end_commit_hash, 则获取区间 diff 和从 start_commit_hash 开始的 commits
         if start_commit_hash and end_commit_hash:
-            shared["start_commit_hash"] = start_commit_hash
-            shared["end_commit_hash"] = end_commit_hash
+            # 获取从 start_commit_hash 后的所有 commits
+            commits = get_merge_request_commits(
+                project_id, merge_number, end_commit_hash
+            )
+            start_commit_hash = commits[-1]["short_id"]
+            end_commit_hash = commits[0]["short_id"]
+
+            commits = commits[
+                :-1
+            ]  # end_commit_hash 是最后一个 commit，已经进行总结过了所以需要移掉
+            shared["commits"] = "\n".join(
+                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
+            )
+
             diff = get_compare_diff_from_commits(
                 project_id, start_commit_hash, end_commit_hash
             )
             shared["raw_diff"] = diff
-            # 获取区间内的 commits
-            commits = get_merge_request_commits(
-                project_id, merge_number, start_commit_hash, end_commit_hash
-            )
-            shared["commits"] = "\n".join(
-                [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
-            )
+            shared["start_commit_hash"] = start_commit_hash
+            shared["end_commit_hash"] = end_commit_hash
             return shared
         else:
             # 如果没有 start_commit_hash 与 end_commit_hash, 则获取 raw diff 并解析出 start_commit_hash 与 end_commit_hash
@@ -98,8 +105,8 @@ class SummaryMergeRequest(AsyncNode):
             shared["raw_diff"] = raw_diff
             # 获取所有 commits
             commits = get_merge_request_commits(project_id, merge_number)
-            start_commit_hash = commits[0]["short_id"]
-            end_commit_hash = commits[-1]["short_id"]
+            start_commit_hash = commits[-1]["short_id"]
+            end_commit_hash = commits[0]["short_id"]
             shared["start_commit_hash"] = start_commit_hash
             shared["end_commit_hash"] = end_commit_hash
             shared["commits"] = "\n".join(
