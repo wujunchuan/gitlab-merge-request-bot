@@ -82,20 +82,23 @@ class SummaryMergeRequest(AsyncNode):
             commits = get_merge_request_commits(
                 project_id, merge_number, end_commit_hash
             )
-            # 移除最后一个 commit（已经总结过了）
-            commits = commits[:-1]
+
             # 获取区间 diff
             actual_start = commits[-1]["short_id"] if commits else start_commit_hash
             actual_end = commits[0]["short_id"] if commits else end_commit_hash
             raw_diff = get_compare_diff_from_commits(
                 project_id, actual_start, actual_end
             )
+
+            # 移除最后一个 commit（已经总结过了）
+            commits = commits[:-1]
         else:
             # 获取整个 MR 的所有内容（完整模式）
-            commits = get_merge_request_commits(project_id, merge_number)
             raw_diff = get_merge_request_raw_diff(project_id, merge_number)
             actual_start = commits[-1]["short_id"]
             actual_end = commits[0]["short_id"]
+
+            commits = get_merge_request_commits(project_id, merge_number)
 
         # 设置共享数据
         shared.update(
