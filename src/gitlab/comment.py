@@ -22,6 +22,26 @@ def create_comment(project_id: str, mr_number: str, content: str):
     return response.json()
 
 
+def get_comment(project_id: str, mr_number: str, sort="desc", order_by="created_at"):
+    """
+    ref: https://docs.gitlab.com/api/notes/#list-merge-request-notes
+
+    获取 Merge Request 的评论
+
+    Args:
+        project_id: The ID of the project
+        mr_number: The number of the merge request
+        sort: Return merge request notes sorted in asc or desc order. Default is desc
+        order_by: Return merge request notes ordered by created_at or updated_at fields. Default is created_at
+    """
+    url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/notes"
+    response = requests.get(
+        url, headers=headers, params={"sort": sort, "order_by": order_by}
+    )
+    response.raise_for_status()
+    return response.json()
+
+
 # todo 为 Merge Request 创建 Thread 讨论
 def create_thread(project_id: str, mr_number: str, content: str):
     """
@@ -34,10 +54,7 @@ def create_thread(project_id: str, mr_number: str, content: str):
 
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
-        "https://git.intra.gaoding.com/npm/gdicon-cli/-/merge_requests/7"
+        "https://git.intra.gaoding.com/gdesign/meta/-/merge_requests/11124"
     )
-    create_comment(
-        project_id,
-        mr_number,
-        content="test",
-    )
+    result = get_comment(project_id, mr_number)
+    print(result[4]["body"])

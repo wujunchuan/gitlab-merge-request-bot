@@ -4,8 +4,12 @@ from pocketflow import AsyncFlow, AsyncNode
 
 from ai.auth import client, get_openai_model
 from ai.get_prompt import prompt_manager
-from gitlab.comment import create_comment
-from gitlab.merge_request import get_merge_request_commits, get_merge_request_raw_diff
+from gitlab.comment import create_comment, get_comment
+from gitlab.merge_request import (
+    get_compare_diff_from_commits,
+    get_merge_request_commits,
+    get_merge_request_raw_diff,
+)
 from gitlab.util import parse_merge_request_url
 from utils.logger import get_logger
 
@@ -54,14 +58,61 @@ class SummaryMergeRequest(AsyncNode):
         shared["project_id"] = project_id
         shared["merge_number"] = merge_number
 
-        # 获取 raw diff
-        raw_diff = get_merge_request_raw_diff(project_id, merge_number)
-        shared["raw_diff"] = raw_diff
+        comments = get_comment(project_id, merge_number)
+        # 遍历 comments, 找出 start_commit_hash 与 end_commit_hash
+        start_commit_hash = None
+        end_commit_hash = None
+        for comment in comments:
+            if start_commit_hash and end_commit_hash:
+                break
+            if "<!-- start-commit-hash" in comment["body"]:
+                start_commit_hash = (
+                    comment["body"]
+                    .split("<!-- start-commit-hash: ")[1]
+                    .split(" -->")[0]
+                )
+            if "<!-- end-commit-hash" in comment["body"]:
+                end_commit_hash = (
+                    comment["body"].split("<!-- end-commit-hash: ")[1].split(" -->")[0]
+                )
 
-        # 获取 commits
-        commits = get_merge_request_commits(project_id, merge_number)
-        shared["commits"] = "\n".join(
-            [f"{commit['short_id']}\n{commit['message']}\n" for commit in commits]
+        # 根据是否有历史 commit hash 决定获取方式
+        if start_commit_hash and end_commit_hash:
+            # 获取从 start_commit_hash 后的所有 commits（区间模式）
+            commits = get_merge_request_commits(
+                project_id, merge_number, end_commit_hash
+            )
+
+            # 获取区间 diff
+            actual_start = commits[-1]["short_id"] if commits else start_commit_hash
+            actual_end = commits[0]["short_id"] if commits else end_commit_hash
+            raw_diff = get_compare_diff_from_commits(
+                project_id, actual_start, actual_end
+            )
+
+            # 移除最后一个 commit（已经总结过了）
+            commits = commits[:-1]
+        else:
+            # 获取整个 MR 的所有内容（完整模式）
+            raw_diff = get_merge_request_raw_diff(project_id, merge_number)
+            actual_start = commits[-1]["short_id"]
+            actual_end = commits[0]["short_id"]
+
+            commits = get_merge_request_commits(project_id, merge_number)
+
+        # 设置共享数据
+        shared.update(
+            {
+                "raw_diff": raw_diff,
+                "start_commit_hash": actual_start,
+                "end_commit_hash": actual_end,
+                "commits": "\n".join(
+                    [
+                        f"{commit['short_id']}\n{commit['message']}\n"
+                        for commit in commits
+                    ]
+                ),
+            }
         )
 
         return shared
@@ -82,7 +133,20 @@ class SummaryMergeRequest(AsyncNode):
         logger.info(
             f"Creating comment for merge request {shared['merge_number']} in project {shared['project_id']}"
         )
-        create_comment(shared["project_id"], shared["merge_number"], exec_res)
+        create_comment(
+            shared["project_id"],
+            shared["merge_number"],
+            f"""
+<!-- gitlab-merge-request-bot meta info -->
+<!-- Don't Remove This Comment -->
+<!-- start-commit-hash: {shared["start_commit_hash"]} -->
+<!-- end-commit-hash: {shared["end_commit_hash"]} -->
+<!-- gitlab-merge-request-bot meta info -->
+
+{exec_res}
+
+        """,
+        )
         logger.info("Comment created successfully")
         return "Done"
 
@@ -92,7 +156,7 @@ if __name__ == "__main__":
 
     async def main():
         shared = {
-            "url": "https://git.intra.gaoding.com/hex/hex-editor/-/merge_requests/8191"
+            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/2"
         }
         await flow.run_async(shared)
 

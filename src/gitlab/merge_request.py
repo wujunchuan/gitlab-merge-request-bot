@@ -68,15 +68,54 @@ def get_merge_request_diff(project_id: str, mr_number: str):
     return response.json()
 
 
-def get_merge_request_commits(project_id: str, mr_number: str) -> list[Commit]:
+def get_merge_request_commits(
+    project_id: str,
+    mr_number: str,
+    start_commit_hash: str = None,
+) -> list[Commit]:
     """
     获取 MR 提交记录
+
+    Args:
+        project_id: 项目 ID
+        mr_number: MR 编号
+        start_commit_hash: 可选，起始 commit hash (包含)，返回从该 commit 开始到最新的所有 commits
+
+    Returns:
+        list[Commit]: 如果指定了 start_commit_hash，则返回从该 commit 开始到最新的所有 commits；
+                     否则返回所有 commits
 
     https://docs.gitlab.com/api/merge_requests/#get-single-merge-request-commits
     """
     url = f"{base_url}/projects/{project_id}/merge_requests/{mr_number}/commits"
     response = requests.get(url, headers=headers)
-    return response.json()
+    all_commits = response.json()
+
+    # 如果没有指定起始 commit，返回所有 commits
+    if not start_commit_hash:
+        return all_commits
+
+    # 查找起始 commit 的索引
+    start_index = None
+
+    for i, commit in enumerate(all_commits):
+        # 匹配 commit hash (支持完整 hash 和 short hash)
+        if (
+            commit["id"] == start_commit_hash
+            or commit["short_id"] == start_commit_hash
+            or commit["id"].startswith(start_commit_hash)
+        ):
+            start_index = i
+            break
+
+    # 如果找不到指定的 commit，返回所有 commits
+    if start_index is None:
+        return all_commits
+
+    # 返回从指定 commit 开始到最新的所有 commits（包含起始 commit）
+    # GitLab API 返回的 commits 是倒序的，最新的在前面
+    # 所以从索引 0 到 start_index（包含）就是从最新到起始 commit
+    return all_commits[0 : start_index + 1]
 
 
 def get_compare_diff_from_commits(
