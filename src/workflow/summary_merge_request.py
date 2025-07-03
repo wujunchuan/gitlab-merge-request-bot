@@ -95,10 +95,9 @@ class SummaryMergeRequest(AsyncNode):
         else:
             # 获取整个 MR 的所有内容（完整模式）
             raw_diff = get_merge_request_raw_diff(project_id, merge_number)
+            commits = get_merge_request_commits(project_id, merge_number)
             actual_start = commits[-1]["short_id"]
             actual_end = commits[0]["short_id"]
-
-            commits = get_merge_request_commits(project_id, merge_number)
 
         # 设置共享数据
         shared.update(
@@ -156,7 +155,7 @@ if __name__ == "__main__":
 
     async def main():
         shared = {
-            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/2"
+            "url": "https://git.intra.gaoding.com/gdesign/meta/-/merge_requests/11134"
         }
         await flow.run_async(shared)
 
