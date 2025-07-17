@@ -60,6 +60,8 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
             print(f"推送分支失败: {e}", file=sys.stderr)
             sys.exit(1)
 
+        title = f"feat: {current_branch} -> {target_branch}"
+
         # 构建 glab mr create 命令
         cmd = [
             "glab",
@@ -68,10 +70,7 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
             "--target-branch",
             target_branch,
             "--title",
-            time.strftime("%Y-%m-%d %H:%M:%S")
-            + ":::"
-            + "Merge Request to "
-            + target_branch,
+            title,
             "--description",
             "WIP",
             "--draft",
@@ -89,7 +88,7 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
         output = result.stderr + result.stdout  # glab 可能输出到 stderr 或 stdout
         print(f"glab 输出: {output}")
 
-        # 查找 MR URL，通常格式为 https://gitlab.com/.../-/merge_requests/123
+        # 支持不同的 GitLab 实例域名
         url_pattern = r"https?://[^\s]+/-/merge_requests/\d+"
         urls = re.findall(url_pattern, output)
 
@@ -176,7 +175,7 @@ def main():
         "target_branch", nargs="?", default="master", help="目标分支 (默认: master)"
     )
     create_parser.add_argument(
-        "assignee", nargs="?", default=os.getenv("GITLAB_USER"), help="指派人"
+        "assignee", nargs="?", default=os.getenv("GITLAB_ASSIGNEE"), help="指派人"
     )
 
     # 解析参数

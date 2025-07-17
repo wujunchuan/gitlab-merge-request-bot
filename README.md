@@ -144,7 +144,7 @@ ptw -- -s
 | `GITLAB_BASE_URL`     | GitLab 实例的基础 URL | 必需            |
 | `GITLAB_ACCESS_TOKEN` | GitLab 访问令牌       | 必需            |
 | `OPENAI_API_KEY`      | OpenAI API 密钥       | 必需            |
-| `GITLAB_USER`         | GitLab 用户名         | create 命令可选 |
+| `GITLAB_ASSIGNEE`     | GitLab 用户名         | create 命令可选 |
 
 ### 外部工具依赖
 
