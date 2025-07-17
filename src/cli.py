@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import os
 import re
 import subprocess
 import sys
@@ -32,32 +33,32 @@ def get_version():
         return f"无法获取版本信息: {e}"
 
 
-def get_current_user():
-    """获取当前 GitLab 用户"""
-    try:
-        result = subprocess.run(
-            ["glab", "auth", "status"], capture_output=True, text=True, check=True
-        )
-        # 从输出中提取用户名，通常格式为 "Logged in to gitlab.com as username"
-        lines = result.stdout.strip().split("\n")
-        for line in lines:
-            if "Logged in to" in line and " as " in line:
-                return line.split(" as ")[-1]
-        return None
-    except subprocess.CalledProcessError:
-        return None
-
-
 async def cmd_create(target_branch: str = "master", assignee: str = None):
     """执行 create 命令逻辑 - 创建 MR 并自动分析"""
+
     try:
-        # 如果没有指定 assignee，尝试获取当前用户
-        if assignee is None:
-            current_user = get_current_user()
-            if current_user:
-                assignee = current_user
-            else:
-                print("警告: 无法获取当前用户，将不设置 assignee", file=sys.stderr)
+        # 获取当前分支名
+        try:
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            current_branch = result.stdout.strip()
+            print(f"当前分支: {current_branch}")
+        except subprocess.CalledProcessError as e:
+            print(f"获取当前分支失败: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        # 推送当前分支到远程仓库
+        print(f"正在推送分支 {current_branch}...")
+        try:
+            subprocess.run(["git", "push", "origin", current_branch], check=True)
+            print(f"分支 {current_branch} 推送成功")
+        except subprocess.CalledProcessError as e:
+            print(f"推送分支失败: {e}", file=sys.stderr)
+            sys.exit(1)
 
         # 构建 glab mr create 命令
         cmd = [
@@ -67,9 +68,13 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
             "--target-branch",
             target_branch,
             "--title",
-            "WIP:",
+            time.strftime("%Y-%m-%d %H:%M:%S")
+            + ":::"
+            + "Merge Request to "
+            + target_branch,
             "--description",
             "WIP",
+            "--draft",
         ]
 
         if assignee:
@@ -97,8 +102,7 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
         print(f"MR 创建成功: {mr_url}")
 
         # 等待一段时间让 GitLab 处理 MR
-        print("等待 10 秒让 GitLab 处理 MR...")
-        time.sleep(10)
+        time.sleep(1)
 
         # 调用 cmd_merge 分析 MR
         print(f"开始分析 MR: {mr_url}")
@@ -172,7 +176,7 @@ def main():
         "target_branch", nargs="?", default="master", help="目标分支 (默认: master)"
     )
     create_parser.add_argument(
-        "assignee", nargs="?", default=None, help="指派人 (默认: 当前用户)"
+        "assignee", nargs="?", default=os.getenv("GITLAB_USER"), help="指派人"
     )
 
     # 解析参数
