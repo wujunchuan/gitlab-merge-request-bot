@@ -73,7 +73,8 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
             title,
             "--description",
             "WIP",
-            "--draft",
+            "--draft",  # 草稿
+            "--remove-source-branch",  # 合并时删除源分支
         ]
 
         if assignee:
@@ -107,7 +108,7 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
         print(f"开始分析 MR: {mr_url}")
         await cmd_merge(mr_url)
 
-        print("MR 创建和分析完成！")
+        print(f"MR 创建和分析完成！, 请在 {mr_url} 查看")
 
     except subprocess.CalledProcessError as e:
         print(f"glab mr create 失败: {e}", file=sys.stderr)
