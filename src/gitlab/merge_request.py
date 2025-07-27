@@ -143,6 +143,97 @@ def get_compare_diff_from_commits(
     return response.json()
 
 
+def create_merge_request(
+    project_id: str,
+    source_branch: str,
+    target_branch: str,
+    title: str,
+    description: str = "",
+    assignee_id: int = None,
+    remove_source_branch: bool = True,
+    draft: bool = True,
+) -> dict:
+    """
+    创建 Merge Request
+
+    Args:
+        project_id: 项目 ID
+        source_branch: 源分支
+        target_branch: 目标分支
+        title: MR 标题
+        description: MR 描述
+        assignee_id: 指派人 ID（可选）
+        remove_source_branch: 合并后是否删除源分支
+        draft: 是否创建为草稿
+
+    Returns:
+        dict: 创建的 MR 信息
+
+    Docs: https://docs.gitlab.com/ee/api/merge_requests.html#create-mr
+    """
+    url = f"{base_url}/projects/{project_id}/merge_requests"
+
+    data = {
+        "source_branch": source_branch,
+        "target_branch": target_branch,
+        "title": title,
+        "description": description,
+        "remove_source_branch": remove_source_branch,
+    }
+
+    # 添加草稿前缀
+    if draft and not title.startswith("Draft:"):
+        data["title"] = f"Draft: {title}"
+
+    if assignee_id:
+        data["assignee_id"] = assignee_id
+
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_user_by_username(username: str) -> dict:
+    """
+    根据用户名获取用户信息
+
+    Args:
+        username: GitLab 用户名
+
+    Returns:
+        dict: 用户信息，包含 id 等字段
+    """
+    url = f"{base_url}/users"
+    params = {"username": username}
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+
+    users = response.json()
+    if not users:
+        raise ValueError(f"未找到用户名为 '{username}' 的用户")
+
+    return users[0]  # 返回第一个匹配的用户
+
+
+def get_project_by_path(project_path: str) -> dict:
+    """
+    根据项目路径获取项目信息
+
+    Args:
+        project_path: 项目路径，如 'username/project-name'
+
+    Returns:
+        dict: 项目信息，包含 id 等字段
+    """
+    # URL encode 项目路径
+    encoded_path = parse_project_name(project_path)
+    url = f"{base_url}/projects/{encoded_path}"
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
