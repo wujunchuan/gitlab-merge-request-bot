@@ -151,6 +151,110 @@ def _fallback_filter_check(section: str, files_to_filter: List[str]) -> bool:
     return False
 
 
+def get_git_remote_project_path() -> str:
+    """
+    从 git remote 获取项目路径
+
+    Returns:
+        str: 项目路径，格式如 'username/project-name'
+
+    Raises:
+        RuntimeError: 当无法获取 git remote 信息时
+    """
+    import subprocess
+
+    try:
+        # 获取 origin 远程仓库的 URL
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        remote_url = result.stdout.strip()
+
+        # 解析不同格式的 git URL
+        # 支持格式：
+        # - https://gitlab.example.com/username/project.git
+        # - git@gitlab.example.com:username/project.git
+        # - https://gitlab.example.com/username/project
+
+        if remote_url.startswith("git@"):
+            # SSH 格式: git@gitlab.example.com:username/project.git
+            if ":" not in remote_url:
+                raise ValueError(f"无法解析 SSH 格式的 remote URL: {remote_url}")
+            project_path = remote_url.split(":", 1)[1]
+        elif remote_url.startswith("http"):
+            # HTTPS 格式: https://gitlab.example.com/username/project.git
+            match = re.match(r"https?://[^/]+/(.+)", remote_url)
+            if not match:
+                raise ValueError(f"无法解析 HTTPS 格式的 remote URL: {remote_url}")
+            project_path = match.group(1)
+        else:
+            raise ValueError(f"不支持的 remote URL 格式: {remote_url}")
+
+        # 移除 .git 后缀
+        if project_path.endswith(".git"):
+            project_path = project_path[:-4]
+
+        return project_path
+
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"无法获取 git remote 信息: {e}")
+    except Exception as e:
+        raise RuntimeError(f"解析 git remote URL 失败: {e}")
+
+
+def get_current_git_branch() -> str:
+    """
+    获取当前 git 分支名
+
+    Returns:
+        str: 当前分支名
+
+    Raises:
+        RuntimeError: 当无法获取分支信息时
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"无法获取当前分支: {e}")
+
+
+def push_current_branch() -> str:
+    """
+    推送当前分支到远程仓库
+
+    Returns:
+        str: 推送的分支名
+
+    Raises:
+        RuntimeError: 当推送失败时
+    """
+    import subprocess
+
+    current_branch = get_current_git_branch()
+
+    try:
+        subprocess.run(
+            ["git", "push", "origin", current_branch],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return current_branch
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"推送分支 {current_branch} 失败: {e}")
+
+
 if __name__ == "__main__":
     content = """diff --git a/.github/workflows/npm-publish.yml b/.github/workflows/npm-publish.yml
 deleted file mode 100644

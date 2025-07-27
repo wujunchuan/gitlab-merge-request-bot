@@ -2,8 +2,6 @@
 import argparse
 import asyncio
 import os
-import re
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -15,7 +13,22 @@ except ImportError:
 
 from pocketflow import AsyncFlow
 
-from gitlab.weekly import fetch_recent_merge_requests, print_merge_requests_summary
+from gitlab.merge_request import (
+    create_merge_request,
+    get_project_by_path,
+    get_user_by_username,
+)
+from gitlab.util import (
+    get_current_git_branch,
+    get_git_remote_project_path,
+    push_current_branch,
+)
+from gitlab.weekly import (
+    fetch_recent_merge_requests,
+    get_current_user_info,
+    print_merge_requests_summary,
+)
+from workflow.code_review import CodeReviewMergeRequest
 from workflow.summary_merge_request import SummaryMergeRequest
 
 
@@ -38,66 +51,67 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
 
     try:
         # 获取当前分支名
-        try:
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            current_branch = result.stdout.strip()
-            print(f"当前分支: {current_branch}")
-        except subprocess.CalledProcessError as e:
-            print(f"获取当前分支失败: {e}", file=sys.stderr)
-            sys.exit(1)
+        print("获取当前分支信息...")
+        current_branch = get_current_git_branch()
+        print(f"当前分支: {current_branch}")
+
+        # 获取项目路径
+        print("获取项目信息...")
+        project_path = get_git_remote_project_path()
+        print(f"项目路径: {project_path}")
 
         # 推送当前分支到远程仓库
         print(f"正在推送分支 {current_branch}...")
-        try:
-            subprocess.run(["git", "push", "origin", current_branch], check=True)
-            print(f"分支 {current_branch} 推送成功")
-        except subprocess.CalledProcessError as e:
-            print(f"推送分支失败: {e}", file=sys.stderr)
-            sys.exit(1)
+        push_current_branch()
+        print(f"分支 {current_branch} 推送成功")
 
+        # 获取项目信息
+        print("获取项目详情...")
+        project_info = get_project_by_path(project_path)
+        project_id = str(project_info["id"])
+        print(f"项目 ID: {project_id}")
+
+        # 处理 assignee
+        assignee_id = None
+        # 如果没有 assignee, 则取当前用户
+        if not assignee:
+            try:
+                current_user = get_current_user_info()
+                assignee_id = current_user["id"]
+                assignee = current_user["username"]
+                print(
+                    f"使用当前用户作为 assignee: {current_user['name']} (ID: {assignee_id})"
+                )
+            except Exception as e:
+                print(f"警告: 无法获取当前用户信息: {e}")
+        else:
+            if assignee:
+                print(f"查找用户: {assignee}")
+                try:
+                    user_info = get_user_by_username(assignee)
+                    assignee_id = user_info["id"]
+                    print(f"找到用户: {user_info['name']} (ID: {assignee_id})")
+                except Exception as e:
+                    print(f"警告: 无法找到用户 '{assignee}': {e}")
+                    print("将不设置 assignee")
+
+        # 生成 MR 标题
         title = f"feat: {current_branch} -> {target_branch}"
 
-        # 构建 glab mr create 命令
-        cmd = [
-            "glab",
-            "mr",
-            "create",
-            "--target-branch",
-            target_branch,
-            "--title",
-            title,
-            "--description",
-            "WIP",
-            "--draft",
-        ]
+        # 使用 GitLab API 创建 MR
+        print("正在通过 GitLab API 创建 MR...")
+        mr_data = create_merge_request(
+            project_id=project_id,
+            source_branch=current_branch,
+            target_branch=target_branch,
+            title=title,
+            description="WIP",
+            assignee_id=assignee_id,
+            remove_source_branch=True,
+            draft=True,
+        )
 
-        if assignee:
-            cmd.extend(["--assignee", assignee])
-
-        print(f"正在创建 MR: {' '.join(cmd)}")
-
-        # 执行 glab mr create 命令
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-
-        # 从输出中提取 MR URL
-        output = result.stderr + result.stdout  # glab 可能输出到 stderr 或 stdout
-        print(f"glab 输出: {output}")
-
-        # 支持不同的 GitLab 实例域名
-        url_pattern = r"https?://[^\s]+/-/merge_requests/\d+"
-        urls = re.findall(url_pattern, output)
-
-        if not urls:
-            print("错误: 无法从 glab 输出中提取 MR URL", file=sys.stderr)
-            print(f"glab 原始输出: {output}", file=sys.stderr)
-            sys.exit(1)
-
-        mr_url = urls[0]
+        mr_url = mr_data["web_url"]
         print(f"MR 创建成功: {mr_url}")
 
         # 等待一段时间让 GitLab 处理 MR
@@ -107,12 +121,8 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
         print(f"开始分析 MR: {mr_url}")
         await cmd_merge(mr_url)
 
-        print("MR 创建和分析完成！")
+        print(f"MR 创建和分析完成！请在 {mr_url} 查看")
 
-    except subprocess.CalledProcessError as e:
-        print(f"glab mr create 失败: {e}", file=sys.stderr)
-        print(f"错误输出: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
         print(f"创建 MR 失败: {e}", file=sys.stderr)
         sys.exit(1)
@@ -151,6 +161,22 @@ async def cmd_merge(url: str):
         sys.exit(1)
 
 
+async def cmd_code_review(url: str):
+    """执行代码审查命令逻辑"""
+    try:
+        print(f"开始对 MR 进行代码审查: {url}")
+        flow = AsyncFlow(start=CodeReviewMergeRequest())
+
+        shared = {"url": url}
+        result = await flow.run_async(shared)
+
+        print(f"代码审查完成: {result}")
+
+    except Exception as e:
+        print(f"代码审查失败: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     """主入口函数"""
     parser = argparse.ArgumentParser(
@@ -168,6 +194,12 @@ def main():
     # merge 子命令
     merge_parser = subparsers.add_parser("merge", help="为指定的 MR 生成摘要并评论")
     merge_parser.add_argument("url", help="GitLab Merge Request URL")
+
+    # code-review 子命令
+    review_parser = subparsers.add_parser(
+        "code-review", help="对指定的 MR 进行代码审查"
+    )
+    review_parser.add_argument("url", help="GitLab Merge Request URL")
 
     # create 子命令
     create_parser = subparsers.add_parser("create", help="创建 MR 并自动分析")
@@ -192,9 +224,11 @@ def main():
         cmd_weekly()
     elif args.command == "merge":
         asyncio.run(cmd_merge(args.url))
+    elif args.command == "code-review":
+        asyncio.run(cmd_code_review(args.url))
     elif args.command == "create":
         asyncio.run(cmd_create(args.target_branch, args.assignee))
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(cmd_create("master"))
