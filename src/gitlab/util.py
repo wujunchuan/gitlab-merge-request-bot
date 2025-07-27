@@ -181,20 +181,15 @@ def get_git_remote_project_path() -> str:
 
         if remote_url.startswith("git@"):
             # SSH 格式: git@gitlab.example.com:username/project.git
-            parts = remote_url.split(":")
-            if len(parts) >= 2:
-                project_path = parts[1]
-            else:
+            if ":" not in remote_url:
                 raise ValueError(f"无法解析 SSH 格式的 remote URL: {remote_url}")
+            project_path = remote_url.split(":", 1)[1]
         elif remote_url.startswith("http"):
             # HTTPS 格式: https://gitlab.example.com/username/project.git
-            # 去掉协议和域名部分
-            url_parts = remote_url.split("/")
-            if len(url_parts) >= 4:
-                # 取最后两部分作为项目路径
-                project_path = "/".join(url_parts[-2:])
-            else:
+            match = re.match(r"https?://[^/]+/(.+)", remote_url)
+            if not match:
                 raise ValueError(f"无法解析 HTTPS 格式的 remote URL: {remote_url}")
+            project_path = match.group(1)
         else:
             raise ValueError(f"不支持的 remote URL 格式: {remote_url}")
 

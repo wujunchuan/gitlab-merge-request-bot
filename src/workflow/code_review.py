@@ -161,20 +161,6 @@ class CodeReviewMergeRequest(AsyncNode):
 
         logger.info(f"Adding code review comments to MR {merge_number}")
 
-        # 检查是否已经存在代码审查评论（避免重复）
-        # existing_discussions = get_discussions(project_id, merge_number)
-        # bot_comments = []
-        # for discussion in existing_discussions:
-        #     for note in discussion.get("notes", []):
-        #         if "<!-- code-review-bot -->" in note.get("body", ""):
-        #             bot_comments.append(note)
-
-        # if bot_comments:
-        #     logger.info(
-        #         f"Found {len(bot_comments)} existing bot comments, skipping duplicate review"
-        #     )
-        #     return "Code review already exists"
-
         # 添加总体评论
         overall_summary = exec_res.get("overall_summary", "代码审查完成")
         general_suggestions = exec_res.get("general_suggestions", [])

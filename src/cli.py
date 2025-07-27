@@ -83,7 +83,6 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
                 )
             except Exception as e:
                 print(f"警告: 无法获取当前用户信息: {e}")
-                assignee = os.getenv("GITLAB_USERNAME")
         else:
             if assignee:
                 print(f"查找用户: {assignee}")
