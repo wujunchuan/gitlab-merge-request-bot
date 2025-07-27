@@ -1,6 +1,26 @@
 # GitLab Merge Request Bot
 
-GitLab Merge Request 工具集，提供 MR 摘要生成和周报功能。
+GitLab Merge Request 工具集，提供 MR 摘要生成、代码审查和周报功能。
+
+## 🌟 主要功能
+
+### 📝 MR 摘要生成
+
+- 自动生成 Merge Request 的变更摘要
+- 支持增量分析，只分析新的 commit
+- 智能识别变更类型和影响范围
+
+### 🔍 AI 代码审查
+
+- **全面分析**: 代码质量、安全性、性能、最佳实践
+- **行级评论**: 精确定位问题到具体代码行
+- **分级反馈**: Critical/Major/Minor/Suggestion 四个级别
+- **智能建议**: 不仅指出问题，还提供解决方案
+
+### 📊 周报统计
+
+- 统计团队最近的 MR 活动
+- 生成结构化的周报内容
 
 ## 🚀 CLI 使用方法
 
@@ -12,6 +32,19 @@ pip install -e .
 
 # 或者正式安装
 pip install .
+```
+
+### 环境配置
+
+```bash
+# GitLab 配置
+export GITLAB_TOKEN="your_gitlab_token"
+export GITLAB_BASE_URL="https://gitlab.com/api/v4"
+
+# AI 配置 (OpenAI 或兼容 API)
+export OPENAI_API_KEY="your_api_key"
+export OPENAI_BASE_URL="https://api.openai.com/v1"  # 可选
+export OPENAI_MODEL="gpt-4"  # 可选，默认 gpt-3.5-turbo
 ```
 
 ### 命令
@@ -32,141 +65,171 @@ gitlab-merge-request-bot version
 gitlab-merge-request-bot weekly
 ```
 
-#### 3. MR 摘要 (`merge`)
+#### 3. 生成 MR 摘要 (`merge`)
 
-为指定的 MR 生成 AI 摘要并添加评论：
+为指定的 MR 生成摘要并评论：
 
 ```bash
 gitlab-merge-request-bot merge <MR_URL>
+
+# 示例
+gitlab-merge-request-bot merge https://gitlab.com/your-project/-/merge_requests/123
 ```
 
-**示例：**
+#### 4. 🆕 AI 代码审查 (`code-review`)
+
+对指定的 MR 进行全面的代码审查：
 
 ```bash
-gitlab-merge-request-bot merge https://git.intra.gaoding.com/hex/hex-editor/-/merge_requests/8191
+gitlab-merge-request-bot code-review <MR_URL>
+
+# 示例
+gitlab-merge-request-bot code-review https://gitlab.com/your-project/-/merge_requests/123
 ```
 
-#### 4. 创建 MR 并自动分析 (`create`)
+**代码审查功能特性**：
 
-创建 Merge Request 并自动生成 AI 摘要：
+- 🔒 **安全分析**: SQL 注入、XSS、输入验证等安全问题检测
+- ⚡ **性能检查**: 识别性能瓶颈和优化机会
+- ✨ **代码质量**: 可读性、维护性、复杂度分析
+- 🎨 **代码风格**: 命名规范、格式化建议
+- 🧪 **测试建议**: 测试覆盖率和边界条件检查
+
+#### 5. 创建 MR 并分析 (`create`)
+
+创建新的 MR 并自动生成摘要：
 
 ```bash
-gitlab-merge-request-bot create [TARGET_BRANCH] [ASSIGNEE]
+gitlab-merge-request-bot create [target_branch] [assignee]
+
+# 示例
+gitlab-merge-request-bot create master john.doe
+gitlab-merge-request-bot create develop
+gitlab-merge-request-bot create  # 默认目标分支为 master
 ```
 
-**功能说明：**
+## 💡 代码审查示例
 
-- 推送当前分支到远程仓库
-- 使用 `glab` CLI 工具创建 MR（草稿状态）
-- 自动调用 AI 分析并添加摘要评论
+### 审查结果展示
 
-**参数：**
+**总体评论**:
 
-- `TARGET_BRANCH`（可选）：目标分支，默认为 `master`
-- `ASSIGNEE`（可选）：指派人，默认使用环境变量 `GITLAB_USER`
+```markdown
+🤖 代码审查报告
 
-**示例：**
+📋 总体评估
+代码质量良好，主要关注点：安全性和错误处理
 
-```bash
-# 创建到 master 分支的 MR
-gitlab-merge-request-bot create
-
-# 创建到 dev 分支的 MR
-gitlab-merge-request-bot create dev
-
-# 创建 MR 并指定指派人
-gitlab-merge-request-bot create dev username
+💡 总体建议
+1. 建议为所有的外部 API 调用添加超时和重试机制
+2. 考虑使用参数化查询避免 SQL 注入风险
 ```
 
-**前置条件：**
+**行级评论**:
 
-- 需要安装并配置 `glab` CLI 工具
-- 确保当前分支有待推送的更改
+```markdown
+🚨 **CRITICAL** - 🔒 SECURITY
 
-### 帮助信息
+这里存在 SQL 注入风险。直接拼接用户输入到 SQL 查询中是危险的。
 
-```bash
-# 查看所有命令
-gitlab-merge-request-bot --help
-
-# 查看特定命令帮助
-gitlab-merge-request-bot version --help
-gitlab-merge-request-bot weekly --help
-gitlab-merge-request-bot merge --help
-gitlab-merge-request-bot create --help
+💡 **建议**: 使用参数化查询：
+SELECT * FROM users WHERE id = %s
 ```
 
-## 🔧 开发模式
+更多详细信息请参考 [代码审查使用文档](./CODE_REVIEW_USAGE.md)。
 
-### 直接运行模块
+## 🛠️ API 开发
 
-开发阶段可以直接运行模块，运行之前需要在 shell 上配置环境变量
+项目提供了完整的 Python API，可以集成到其他应用中：
 
-`export PYTHONPATH="${PYTHONPATH}:./src"`
+```python
+from workflow.summary_merge_request import SummaryMergeRequest
+from workflow.code_review import CodeReviewMergeRequest
+from pocketflow import AsyncFlow
 
-### Unit test
+# MR 摘要
+async def generate_summary(mr_url):
+    flow = AsyncFlow(start=SummaryMergeRequest())
+    result = await flow.run_async({"url": mr_url})
+    return result
 
-#### 运行所有测试
-
-```bash
-pytest tests/
+# 代码审查
+async def review_code(mr_url):
+    flow = AsyncFlow(start=CodeReviewMergeRequest())
+    result = await flow.run_async({"url": mr_url})
+    return result
 ```
 
-#### 运行详细模式
+## 📁 项目结构
 
-```bash
-pytest tests/test_util.py -v
+```
+src/
+├── ai/                    # AI 相关模块
+│   ├── auth.py           # AI 服务认证
+│   ├── get_prompt.py     # Prompt 管理
+│   └── prompt/           # Prompt 模板
+│       ├── summary_merge_request.md
+│       └── code_review.md
+├── gitlab/               # GitLab API 集成
+│   ├── auth.py          # GitLab 认证
+│   ├── comment.py       # 评论和讨论功能
+│   ├── merge_request.py # MR 操作
+│   ├── diff_parser.py   # Diff 解析器
+│   └── util.py          # 工具函数
+├── workflow/            # 工作流模块
+│   ├── summary_merge_request.py  # MR 摘要工作流
+│   └── code_review.py           # 代码审查工作流
+├── utils/               # 通用工具
+└── cli.py              # 命令行接口
 ```
 
-#### 运行特定测试
+## 🔧 高级配置
 
-```bash
-pytest tests/test_util.py::TestFilterFilesFromDiff::test_filter_single_file -v
+### 自定义审查规则
+
+可以通过修改 `src/ai/prompt/code_review.md` 来自定义审查标准：
+
+```markdown
+# 在 prompt 中添加特定的规则
+- 检查函数长度不超过 50 行
+- 确保所有公共方法都有文档字符串
+- 验证错误处理的完整性
 ```
 
-#### watch mode
+### 配置文件过滤
 
-```bash
-ptw -- -s
+```python
+# 在代码中配置跳过特定文件
+skip_files = [
+    "package-lock.json",
+    "yarn.lock", 
+    "*.min.js",
+    "vendor/*"
+]
 ```
 
-## 📋 环境配置
+## 🤝 贡献指南
 
-在使用之前，请确保配置了必要的环境变量：
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
 
-- **GitLab 访问令牌**：用于访问 GitLab API
-- **OpenAI API 密钥**：用于 AI 摘要生成
+## 📄 许可证
 
-### 必需的环境变量
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-| 环境变量              | 说明                  | 必需程度        |
-| --------------------- | --------------------- | --------------- |
-| `GITLAB_BASE_URL`     | GitLab 实例的基础 URL | 必需            |
-| `GITLAB_ACCESS_TOKEN` | GitLab 访问令牌       | 必需            |
-| `OPENAI_API_KEY`      | OpenAI API 密钥       | 必需            |
-| `GITLAB_ASSIGNEE`     | GitLab 用户名         | create 命令可选 |
+## 🙋‍♂️ 支持
 
-### 外部工具依赖
+如果遇到问题或有功能建议，请：
 
-#### glab CLI（create 命令必需）
+1. 查看 [Issues](../../issues) 了解已知问题
+2. 创建新的 Issue 描述问题或建议
+3. 参考 [代码审查使用文档](./CODE_REVIEW_USAGE.md) 了解详细功能
 
-`create` 命令依赖 GitLab 官方 CLI 工具 `glab`：
+## 🔗 相关链接
 
-```bash
-# macOS
-brew install glab
-
-# 其他平台参考：https://gitlab.com/gitlab-org/cli
-```
-
-配置 `glab`：
-
-```bash
-# 认证到你的 GitLab 实例
-glab auth login
-
-# 验证配置
-glab api user
-```
-
-具体的环境变量配置请参考项目中的相关配置文件。
+- [GitLab API 文档](https://docs.gitlab.com/api/)
+- [OpenAI API 文档](https://platform.openai.com/docs/api-reference)
+- [代码审查最佳实践](./CODE_REVIEW_USAGE.md)

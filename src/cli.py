@@ -16,6 +16,7 @@ except ImportError:
 from pocketflow import AsyncFlow
 
 from gitlab.weekly import fetch_recent_merge_requests, print_merge_requests_summary
+from workflow.code_review import CodeReviewMergeRequest
 from workflow.summary_merge_request import SummaryMergeRequest
 
 
@@ -152,6 +153,22 @@ async def cmd_merge(url: str):
         sys.exit(1)
 
 
+async def cmd_code_review(url: str):
+    """执行代码审查命令逻辑"""
+    try:
+        print(f"开始对 MR 进行代码审查: {url}")
+        flow = AsyncFlow(start=CodeReviewMergeRequest())
+
+        shared = {"url": url}
+        result = await flow.run_async(shared)
+
+        print(f"代码审查完成: {result}")
+
+    except Exception as e:
+        print(f"代码审查失败: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     """主入口函数"""
     parser = argparse.ArgumentParser(
@@ -169,6 +186,12 @@ def main():
     # merge 子命令
     merge_parser = subparsers.add_parser("merge", help="为指定的 MR 生成摘要并评论")
     merge_parser.add_argument("url", help="GitLab Merge Request URL")
+
+    # code-review 子命令
+    review_parser = subparsers.add_parser(
+        "code-review", help="对指定的 MR 进行代码审查"
+    )
+    review_parser.add_argument("url", help="GitLab Merge Request URL")
 
     # create 子命令
     create_parser = subparsers.add_parser("create", help="创建 MR 并自动分析")
@@ -193,6 +216,8 @@ def main():
         cmd_weekly()
     elif args.command == "merge":
         asyncio.run(cmd_merge(args.url))
+    elif args.command == "code-review":
+        asyncio.run(cmd_code_review(args.url))
     elif args.command == "create":
         asyncio.run(cmd_create(args.target_branch, args.assignee))
 
