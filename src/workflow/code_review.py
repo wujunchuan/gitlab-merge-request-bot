@@ -242,7 +242,7 @@ class CodeReviewMergeRequest(AsyncNode):
                 else:
                     # 如果 suggestion 为空，则不创建评论
                     # 避免彩虹屁
-                    return
+                    continue
 
                 comment_text += "\n\n<!-- code-review-bot -->"
 
