@@ -117,7 +117,7 @@ graph LR
 
 可以通过修改代码来自定义审查行为：
 
-### 调整审查重点
+<!-- ### 调整审查重点
 
 ```python
 # 在 src/workflow/code_review.py 中
@@ -131,7 +131,7 @@ class CodeReviewOptions:
         severity_threshold: str = "minor"      # 评论严重性阈值
     ):
         # 配置选项
-```
+``` -->
 
 ### 修改审查 Prompt
 

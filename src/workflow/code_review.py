@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from pocketflow import AsyncFlow, AsyncNode
 
@@ -36,6 +36,7 @@ def call_llm_for_review(diff_content: str) -> Dict[str, Any]:
                 {"role": "system", "content": code_review_prompt},
                 {"role": "user", "content": diff_content},
             ],
+            response_format={"type": "json_object"},
         )
 
         result = chat_completion.choices[0].message.content
@@ -239,8 +240,31 @@ class CodeReviewMergeRequest(AsyncNode):
 
                 if suggestion:
                     comment_text += f"\n\n💡 **建议**: {suggestion}"
+                else:
+                    # 如果 suggestion 为空，则不创建评论
+                    # 避免彩虹屁
+                    return
 
                 comment_text += "\n\n<!-- code-review-bot -->"
+
+                # 映射 AI 返回的 line_type 到 GitLab API 格式
+                # AI 输出: "added", "removed", "modified"
+                # GitLab API: "new", "old", "both"
+                # 注意：line_number 应该对应正确的行号：
+                # - "removed" 行使用 old_line_number
+                # - "added" 或 "modified" 行使用 new_line_number
+                ai_line_type = comment.get("line_type", "added")  # 默认为 added
+                gitlab_line_type = "new"  # 默认值
+                if ai_line_type == "removed":
+                    gitlab_line_type = "old"
+                elif ai_line_type == "modified":
+                    gitlab_line_type = "both"
+                elif ai_line_type == "added":
+                    gitlab_line_type = "new"
+
+                logger.debug(
+                    f"Line comment mapping: AI line_type='{ai_line_type}' -> GitLab line_type='{gitlab_line_type}' for {file_path}:{line_number}"
+                )
 
                 # 创建行级评论
                 create_diff_discussion(
@@ -249,7 +273,7 @@ class CodeReviewMergeRequest(AsyncNode):
                     content=comment_text,
                     file_path=file_path,
                     line_number=line_number,
-                    line_type="new",  # 默认评论新增行
+                    line_type=gitlab_line_type,
                     base_sha=prep_res.get("base_sha"),
                     head_sha=prep_res.get("head_sha"),
                     start_sha=prep_res.get("start_sha"),
@@ -268,34 +292,12 @@ class CodeReviewMergeRequest(AsyncNode):
         return f"Created {line_comment_count} line comments and 1 overall summary"
 
 
-class CodeReviewOptions:
-    """代码审查选项配置"""
-
-    def __init__(
-        self,
-        skip_files: List[str] = None,
-        focus_on_security: bool = True,
-        focus_on_performance: bool = True,
-        max_comments_per_file: int = 10,
-        severity_threshold: str = "minor",
-    ):
-        self.skip_files = skip_files or [
-            "package-lock.json",
-            "yarn.lock",
-            "pnpm-lock.yaml",
-        ]
-        self.focus_on_security = focus_on_security
-        self.focus_on_performance = focus_on_performance
-        self.max_comments_per_file = max_comments_per_file
-        self.severity_threshold = severity_threshold
-
-
 if __name__ == "__main__":
     flow = AsyncFlow(start=CodeReviewMergeRequest())
 
     async def main():
         shared = {
-            "url": "https://gitlab.com/wujunchuan/gitlab-merge-request-bot/-/merge_requests/2"
+            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/12"
         }
         result = await flow.run_async(shared)
         print(f"Code review result: {result}")
