@@ -9,7 +9,6 @@ from ai.get_prompt import prompt_manager
 from gitlab.comment import (
     create_diff_discussion,
     create_discussion,
-    get_discussions,
     get_merge_request_versions,
 )
 from gitlab.diff_parser import DiffParser, format_diff_for_review
@@ -163,18 +162,18 @@ class CodeReviewMergeRequest(AsyncNode):
         logger.info(f"Adding code review comments to MR {merge_number}")
 
         # 检查是否已经存在代码审查评论（避免重复）
-        existing_discussions = get_discussions(project_id, merge_number)
-        bot_comments = []
-        for discussion in existing_discussions:
-            for note in discussion.get("notes", []):
-                if "<!-- code-review-bot -->" in note.get("body", ""):
-                    bot_comments.append(note)
+        # existing_discussions = get_discussions(project_id, merge_number)
+        # bot_comments = []
+        # for discussion in existing_discussions:
+        #     for note in discussion.get("notes", []):
+        #         if "<!-- code-review-bot -->" in note.get("body", ""):
+        #             bot_comments.append(note)
 
-        if bot_comments:
-            logger.info(
-                f"Found {len(bot_comments)} existing bot comments, skipping duplicate review"
-            )
-            return "Code review already exists"
+        # if bot_comments:
+        #     logger.info(
+        #         f"Found {len(bot_comments)} existing bot comments, skipping duplicate review"
+        #     )
+        #     return "Code review already exists"
 
         # 添加总体评论
         overall_summary = exec_res.get("overall_summary", "代码审查完成")
@@ -258,7 +257,7 @@ class CodeReviewMergeRequest(AsyncNode):
                 if ai_line_type == "removed":
                     gitlab_line_type = "old"
                 elif ai_line_type == "modified":
-                    gitlab_line_type = "both"
+                    gitlab_line_type = "new"
                 elif ai_line_type == "added":
                     gitlab_line_type = "new"
 
@@ -297,7 +296,7 @@ if __name__ == "__main__":
 
     async def main():
         shared = {
-            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/12"
+            "url": "https://git.intra.gaoding.com/chuanpu/gitlab-merge-request-bot/-/merge_requests/15"
         }
         result = await flow.run_async(shared)
         print(f"Code review result: {result}")

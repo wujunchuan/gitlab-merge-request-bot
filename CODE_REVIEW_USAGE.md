@@ -113,26 +113,6 @@ graph LR
 5. **生成评论**: 将 AI 分析结果转换为结构化评论
 6. **添加评论**: 使用 GitLab Discussions API 添加行级评论
 
-## 自定义配置
-
-可以通过修改代码来自定义审查行为：
-
-<!-- ### 调整审查重点
-
-```python
-# 在 src/workflow/code_review.py 中
-class CodeReviewOptions:
-    def __init__(
-        self,
-        skip_files: List[str] = None,          # 跳过的文件类型
-        focus_on_security: bool = True,        # 重点关注安全性
-        focus_on_performance: bool = True,     # 重点关注性能
-        max_comments_per_file: int = 10,       # 每个文件最大评论数
-        severity_threshold: str = "minor"      # 评论严重性阈值
-    ):
-        # 配置选项
-``` -->
-
 ### 修改审查 Prompt
 
 编辑 `src/ai/prompt/code_review.md` 文件来调整 AI 的审查标准和风格。
