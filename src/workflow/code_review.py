@@ -225,9 +225,8 @@ class CodeReviewMergeRequest(AsyncNode):
 
                 if suggestion:
                     comment_text += f"\n\n💡 **建议**: {suggestion}"
-                else:
-                    # 如果 suggestion 为空，则不创建评论
-                    # 避免彩虹屁
+                elif severity in ["suggestion", "minor"]:
+                    # 只跳过低严重性且无建议的评论，避免彩虹屁
                     continue
 
                 comment_text += "\n\n<!-- code-review-bot -->"
