@@ -13,7 +13,21 @@ except ImportError:
 
 from pocketflow import AsyncFlow
 
-from gitlab.weekly import fetch_recent_merge_requests, print_merge_requests_summary
+from gitlab.merge_request import (
+    create_merge_request,
+    get_project_by_path,
+    get_user_by_username,
+)
+from gitlab.util import (
+    get_current_git_branch,
+    get_git_remote_project_path,
+    push_current_branch,
+)
+from gitlab.weekly import (
+    fetch_recent_merge_requests,
+    get_current_user_info,
+    print_merge_requests_summary,
+)
 from workflow.code_review import CodeReviewMergeRequest
 from workflow.summary_merge_request import SummaryMergeRequest
 
@@ -36,17 +50,6 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
     """执行 create 命令逻辑 - 创建 MR 并自动分析"""
 
     try:
-        from gitlab.merge_request import (
-            create_merge_request,
-            get_project_by_path,
-            get_user_by_username,
-        )
-        from gitlab.util import (
-            get_current_git_branch,
-            get_git_remote_project_path,
-            push_current_branch,
-        )
-
         # 获取当前分支名
         print("获取当前分支信息...")
         current_branch = get_current_git_branch()
@@ -73,8 +76,6 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
         # 如果没有 assignee, 则取当前用户
         if not assignee:
             try:
-                from gitlab.weekly import get_current_user_info
-
                 current_user = get_current_user_info()
                 assignee_id = current_user["id"]
                 assignee = current_user["username"]
