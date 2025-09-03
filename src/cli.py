@@ -6,6 +6,8 @@ import sys
 import time
 from pathlib import Path
 
+import requests
+
 try:
     import tomllib
 except ImportError:
@@ -15,6 +17,7 @@ from pocketflow import AsyncFlow
 
 from gitlab.merge_request import (
     create_merge_request,
+    get_merge_request_by_source_branch,
     get_project_by_path,
     get_user_by_username,
 )
@@ -100,19 +103,36 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
 
         # 使用 GitLab API 创建 MR
         print("正在通过 GitLab API 创建 MR...")
-        mr_data = create_merge_request(
-            project_id=project_id,
-            source_branch=current_branch,
-            target_branch=target_branch,
-            title=title,
-            description="WIP",
-            assignee_id=assignee_id,
-            remove_source_branch=True,
-            draft=True,
-        )
+        try:
+            mr_data = create_merge_request(
+                project_id=project_id,
+                source_branch=current_branch,
+                target_branch=target_branch,
+                title=title,
+                description="WIP",
+                assignee_id=assignee_id,
+                remove_source_branch=True,
+                draft=True,
+            )
 
-        mr_url = mr_data["web_url"]
-        print(f"MR 创建成功: {mr_url}")
+            mr_url = mr_data["web_url"]
+            print(f"MR 创建成功: {mr_url}")
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:
+                # MR 已存在，根据源分支获取已存在的 MR
+                print(f"分支 {current_branch} 的 MR 已存在，正在获取已存在的 MR...")
+                try:
+                    existing_mr = get_merge_request_by_source_branch(
+                        project_id, current_branch
+                    )
+                    mr_url = existing_mr["web_url"]
+                    print(f"找到已存在的 MR: {mr_url}")
+                except ValueError as ve:
+                    print(f"获取已存在的 MR 失败: {ve}")
+                    raise e  # 重新抛出原始异常
+            else:
+                raise e  # 不是 409 异常，重新抛出
 
         # 等待一段时间让 GitLab 处理 MR
         time.sleep(1)

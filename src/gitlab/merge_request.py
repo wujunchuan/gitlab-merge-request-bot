@@ -234,6 +234,37 @@ def get_project_by_path(project_path: str) -> dict:
     return response.json()
 
 
+def get_merge_request_by_source_branch(project_id: str, source_branch: str) -> dict:
+    """
+    根据源分支获取对应的 Merge Request
+
+    Args:
+        project_id: 项目 ID
+        source_branch: 源分支名
+
+    Returns:
+        dict: MR 信息，如果找不到则返回 None
+
+    Raises:
+        ValueError: 如果找不到对应分支的 MR
+    """
+    url = f"{base_url}/projects/{project_id}/merge_requests"
+    params = {
+        "source_branch": source_branch,
+        "state": "opened",  # 只查找打开状态的 MR
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+
+    mrs = response.json()
+    if not mrs:
+        raise ValueError(f"未找到源分支为 '{source_branch}' 的 MR")
+
+    # 返回第一个匹配的 MR
+    return mrs[0]
+
+
 if __name__ == "__main__":
     project_id, mr_number = parse_merge_request_url(
         # "https://git.intra.gaoding.com/operations-market/market-views/-/merge_requests/168"
