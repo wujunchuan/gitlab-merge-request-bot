@@ -18,8 +18,10 @@
   - Chores
 - 详细变更说明
 - 提交历史总结
-  - 需要明确具体的 Commit Hash
+  - 需要明确具体的 Commit Hash，根据具体的 Commit Message 做提交总结
   - 输出的 Commit Hash，不要输出任何 Markdown 装饰，如 bold、italic、double backticks
+  - 注意，输出的每个总结，用 Markdown 的无序列表语法表示
+  - 使用中文
 - 测试与影响
 - Mermaid 示例
   - 分析用户的问题，确定是否适合使用图表进行解释或回答。适合使用图表的场景包括但不限于：流程描述、层次结构、时间线、关系图等。
