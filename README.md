@@ -9,6 +9,7 @@ GitLab Merge Request 工具集，提供 MR 摘要生成、代码审查和周报�
 - 自动生成 Merge Request 的变更摘要
 - 支持增量分析，只分析新的 commit
 - 智能识别变更类型和影响范围
+- **🎯 智能分支检测**: 无需手动输入 MR URL，自动根据当前分支获取对应的 MR
 
 ### 🔍 AI 代码审查
 
@@ -16,6 +17,7 @@ GitLab Merge Request 工具集，提供 MR 摘要生成、代码审查和周报�
 - **行级评论**: 精确定位问题到具体代码行
 - **分级反馈**: Critical/Major/Minor/Suggestion 四个级别
 - **智能建议**: 不仅指出问题，还提供解决方案
+- **🎯 智能分支检测**: 无需手动输入 MR URL，自动根据当前分支获取对应的 MR
 
 ### 📊 周报统计
 
@@ -23,6 +25,8 @@ GitLab Merge Request 工具集，提供 MR 摘要生成、代码审查和周报�
 - 生成结构化的周报内容
 
 ## 🚀 CLI 使用方法
+
+> 💡 **新特性**: `merge` 和 `code-review` 命令现在支持智能分支检测！无需手动输入 MR URL，工具会自动根据当前 Git 分支查找对应的 Merge Request。
 
 ### 安装
 
@@ -70,10 +74,15 @@ gitlab-merge-request-bot weekly
 为指定的 MR 生成摘要并评论：
 
 ```bash
+# 指定 MR URL
 gitlab-merge-request-bot merge <MR_URL>
+
+# 自动获取当前分支对应的 MR（推荐）
+gitlab-merge-request-bot merge
 
 # 示例
 gitlab-merge-request-bot merge https://gitlab.com/your-project/-/merge_requests/123
+gitlab-merge-request-bot merge  # 自动分析当前分支的 MR
 ```
 
 #### 4. 🆕 AI 代码审查 (`code-review`)
@@ -81,10 +90,15 @@ gitlab-merge-request-bot merge https://gitlab.com/your-project/-/merge_requests/
 对指定的 MR 进行全面的代码审查：
 
 ```bash
+# 指定 MR URL
 gitlab-merge-request-bot code-review <MR_URL>
+
+# 自动获取当前分支对应的 MR（推荐）
+gitlab-merge-request-bot code-review
 
 # 示例
 gitlab-merge-request-bot code-review https://gitlab.com/your-project/-/merge_requests/123
+gitlab-merge-request-bot code-review  # 自动审查当前分支的 MR
 ```
 
 **代码审查功能特性**：
@@ -145,10 +159,27 @@ SELECT * FROM users WHERE id = %s
 ```python
 from workflow.summary_merge_request import SummaryMergeRequest
 from workflow.code_review import CodeReviewMergeRequest
+from gitlab.merge_request import get_merge_request_by_source_branch
+from gitlab.util import get_current_git_branch, get_git_remote_project_path
+from gitlab.merge_request import get_project_by_path
 from pocketflow import AsyncFlow
 
-# MR 摘要
+# MR 摘要（指定 URL）
 async def generate_summary(mr_url):
+    flow = AsyncFlow(start=SummaryMergeRequest())
+    result = await flow.run_async({"url": mr_url})
+    return result
+
+# MR 摘要（自动获取当前分支的 MR）
+async def generate_summary_auto():
+    # 获取当前分支对应的 MR URL
+    current_branch = get_current_git_branch()
+    project_path = get_git_remote_project_path()
+    project_info = get_project_by_path(project_path)
+    project_id = str(project_info["id"])
+    mr_info = get_merge_request_by_source_branch(project_id, current_branch)
+    mr_url = mr_info["web_url"]
+    
     flow = AsyncFlow(start=SummaryMergeRequest())
     result = await flow.run_async({"url": mr_url})
     return result
@@ -162,7 +193,7 @@ async def review_code(mr_url):
 
 ## 📁 项目结构
 
-```
+```text
 src/
 ├── ai/                    # AI 相关模块
 │   ├── auth.py           # AI 服务认证

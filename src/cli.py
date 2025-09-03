@@ -6,6 +6,8 @@ import sys
 import time
 from pathlib import Path
 
+import requests
+
 try:
     import tomllib
 except ImportError:
@@ -15,6 +17,7 @@ from pocketflow import AsyncFlow
 
 from gitlab.merge_request import (
     create_merge_request,
+    get_merge_request_by_source_branch,
     get_project_by_path,
     get_user_by_username,
 )
@@ -30,6 +33,32 @@ from gitlab.weekly import (
 )
 from workflow.code_review import CodeReviewMergeRequest
 from workflow.summary_merge_request import SummaryMergeRequest
+
+
+def get_mr_url_from_current_branch() -> str:
+    """根据当前分支获取对应的 MR URL"""
+    try:
+        # 获取当前分支名
+        current_branch = get_current_git_branch()
+        print(f"当前分支: {current_branch}")
+
+        # 获取项目路径
+        project_path = get_git_remote_project_path()
+        print(f"项目路径: {project_path}")
+
+        # 获取项目信息
+        project_info = get_project_by_path(project_path)
+        project_id = str(project_info["id"])
+
+        # 根据分支获取 MR
+        mr_info = get_merge_request_by_source_branch(project_id, current_branch)
+        mr_url = mr_info["web_url"]
+
+        print(f"找到对应的 MR: {mr_url}")
+        return mr_url
+
+    except Exception as e:
+        raise RuntimeError(f"无法获取当前分支对应的 MR URL: {e}")
 
 
 def get_version():
@@ -100,19 +129,36 @@ async def cmd_create(target_branch: str = "master", assignee: str = None):
 
         # 使用 GitLab API 创建 MR
         print("正在通过 GitLab API 创建 MR...")
-        mr_data = create_merge_request(
-            project_id=project_id,
-            source_branch=current_branch,
-            target_branch=target_branch,
-            title=title,
-            description="WIP",
-            assignee_id=assignee_id,
-            remove_source_branch=True,
-            draft=True,
-        )
+        try:
+            mr_data = create_merge_request(
+                project_id=project_id,
+                source_branch=current_branch,
+                target_branch=target_branch,
+                title=title,
+                description="WIP",
+                assignee_id=assignee_id,
+                remove_source_branch=True,
+                draft=True,
+            )
 
-        mr_url = mr_data["web_url"]
-        print(f"MR 创建成功: {mr_url}")
+            mr_url = mr_data["web_url"]
+            print(f"MR 创建成功: {mr_url}")
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:
+                # MR 已存在，根据源分支获取已存在的 MR
+                print(f"分支 {current_branch} 的 MR 已存在，正在获取已存在的 MR...")
+                try:
+                    existing_mr = get_merge_request_by_source_branch(
+                        project_id, current_branch
+                    )
+                    mr_url = existing_mr["web_url"]
+                    print(f"找到已存在的 MR: {mr_url}")
+                except ValueError as ve:
+                    print(f"获取已存在的 MR 失败: {ve}")
+                    raise e  # 重新抛出原始异常
+            else:
+                raise e  # 不是 409 异常，重新抛出
 
         # 等待一段时间让 GitLab 处理 MR
         time.sleep(1)
@@ -148,9 +194,16 @@ def cmd_weekly():
         sys.exit(1)
 
 
-async def cmd_merge(url: str):
+async def cmd_merge(url: str = None):
     """执行 merge 命令逻辑"""
     try:
+        # 如果没有提供 URL，则根据当前分支获取
+        if not url:
+            print("未提供 MR URL，正在根据当前分支获取...")
+            url = get_mr_url_from_current_branch()
+
+        print(f"开始分析 MR: {url}")
+
         flow = AsyncFlow(start=SummaryMergeRequest())
 
         shared = {"url": url}
@@ -161,9 +214,14 @@ async def cmd_merge(url: str):
         sys.exit(1)
 
 
-async def cmd_code_review(url: str):
+async def cmd_code_review(url: str = None):
     """执行代码审查命令逻辑"""
     try:
+        # 如果没有提供 URL，则根据当前分支获取
+        if not url:
+            print("未提供 MR URL，正在根据当前分支获取...")
+            url = get_mr_url_from_current_branch()
+
         print(f"开始对 MR 进行代码审查: {url}")
         flow = AsyncFlow(start=CodeReviewMergeRequest())
 
@@ -193,13 +251,21 @@ def main():
 
     # merge 子命令
     merge_parser = subparsers.add_parser("merge", help="为指定的 MR 生成摘要并评论")
-    merge_parser.add_argument("url", help="GitLab Merge Request URL")
+    merge_parser.add_argument(
+        "url",
+        nargs="?",
+        help="GitLab Merge Request URL (可选，如果为空则根据当前分支获取对应的 MR)",
+    )
 
     # code-review 子命令
     review_parser = subparsers.add_parser(
         "code-review", help="对指定的 MR 进行代码审查"
     )
-    review_parser.add_argument("url", help="GitLab Merge Request URL")
+    review_parser.add_argument(
+        "url",
+        nargs="?",
+        help="GitLab Merge Request URL (可选，如果为空则根据当前分支获取对应的 MR)",
+    )
 
     # create 子命令
     create_parser = subparsers.add_parser("create", help="创建 MR 并自动分析")
@@ -231,4 +297,4 @@ def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(cmd_create("master"))
+    main()
